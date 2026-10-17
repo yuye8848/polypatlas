@@ -1,7 +1,14 @@
 # PolypAtlas — CRSwNP Multi-omics Resource（网站工程说明）
 
 > 工作名称可更名：全站唯一名称配置在 `web/build/build.py` 的 `WORKING_NAME` 变量；
-> 改名后重新运行 `python3 build/build.py` 即可全站生效。
+> 改名后重新运行 `python3 build/build.py` 即可全站生效（v1.1 起双语支持随构建自动保留）。
+
+## 中英双语（v1.1）
+
+- 每页页眉有 `EN | 中文` 切换；首次加载默认英文；选择经 `localStorage` 跨页面/刷新保持。
+- 全部用户文案登记在 `build/build.py` 的 `STRINGS`（key → (en, zh)）；页面以英文内联 + `data-i18n` 标记生成，词典内联在每页脚本中（无外部 JSON 请求，file:// 可用）；基因页动态字符串在 `gene_app.js` 的 `GS` 词典中。
+- 不翻译：基因符号、GEO 编号、数据集原标题、数字、PMID、文件名。
+- 详见 `i18n_report.md`。
 
 ## 目录
 

@@ -6,6 +6,16 @@ Run:  python3 build.py
 Output: ../site/ (the site), data copied to ../site/data/ (downloads)
 Every number rendered on the site is copied from the step reports / result files,
 never invented. Caveats are rendered next to the data they qualify.
+
+i18n: full EN/ZH bilingual support, default EN.
+  - All user-facing strings live in STRINGS (key -> (en, zh)) below.
+  - Pages are rendered with EN inline + data-i18n="key" markers; an inline script
+    (I18N_SCRIPT) swaps to ZH from the embedded dictionary when
+    localStorage['pa_lang'] == 'zh'. Persisted across pages/reloads.
+  - data.js cohort records carry n_en / n_zh design strings for the dynamic gene page.
+  - gene_app.js has its own GS dictionary for JS-generated strings and calls
+    PA_langChanged to re-render results on language switch.
+  - WORKING_NAME stays effective in both languages (renaming still a one-line change).
 """
 import csv, json, os, shutil, re
 from datetime import date
@@ -13,79 +23,433 @@ from datetime import date
 BASE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(os.path.dirname(BASE))  # ~/workspace/sci-crswnp-resource
 SITE = os.path.join(PROJ, "web", "site")
-VERSION = "v1.0"
+VERSION = "v1.1"
 BUILD_DATE = date.today().isoformat()
 
+# ================= i18n string registry: key -> (en, zh) =================
+# DO NOT translate via these keys: gene symbols, GEO accessions, dataset titles,
+# numbers, PMIDs, file names. Only user-facing copy lives here.
+_STRINGS = {}
+def _def(key, en, zh):
+    _STRINGS[key] = (en, zh)
+def en_of(key):
+    return _STRINGS[key][0]
+def dk(key):
+    """data-i18n attribute marker."""
+    return f'data-i18n="{key}"'
+
+# --- nav / header / footer ---
+_def("nav_home", "Home", "首页")
+_def("nav_gene", "Gene query", "基因查询")
+_def("nav_cohorts", "Cohorts &amp; datasets", "队列与数据集")
+_def("nav_downloads", "Data downloads", "数据下载")
+_def("nav_methods", "Methods &amp; limitations", "方法与限制")
+_def("title_home", "Home", "首页")
+_def("title_gene", "Gene query", "基因查询")
+_def("title_cohorts", "Cohorts &amp; datasets", "队列与数据集")
+_def("title_downloads", "Data downloads", "数据下载")
+_def("title_methods", "Methods &amp; limitations", "方法与限制")
+_def("disc",
+     "<b>Research use only</b>: This site is an integrated query resource for publicly "
+     "available chronic rhinosinusitis with nasal polyps (CRSwNP) transcriptomic data, "
+     "for research reference only. It does not provide clinical diagnosis, disease "
+     "probability estimates, or treatment recommendations. All values come from uniform "
+     "reanalysis of public data; known limitations of each cohort are annotated alongside the data.",
+     "<b>研究用途声明</b>：本站为鼻息肉（CRSwNP）公开转录组数据的整合查询资源，仅供科研参考，"
+     "不提供临床诊断、患病概率或治疗建议。所有数值均为公开数据的统一再分析结果，每个队列的已知限制均标注在数据旁。")
+# footer pieces (name injected separately)
+_def("foot_working", "(working name, renamable)", "（工作名称，可更名）")
+_def("foot_build", "Build date", "构建日期")
+_def("foot_src", "Data source: public GEO data (PMID/GEO links for each series on the \u2018Cohorts &amp; datasets\u2019 page)", "数据来源：GEO 公开数据（各系列见“队列与数据集”页的 PMID/GEO 链接）")
+_def("foot_auth", "Authors/contact: [to be filled]", "作者/联系方式：[待填]")
+
+# --- index ---
+_def("idx_intro",
+     "This resource curates all 66 human chronic rhinosinusitis / nasal polyp datasets in GEO "
+     "one by one (30 in the core set), re-runs differential analysis uniformly for each eligible "
+     "bulk cohort, annotates single-cell datasets with one unified cell-type vocabulary, organizes "
+     "GeoMx spatial data by compartment, and aligns the three evidence layers. All results are "
+     "queryable and downloadable online.",
+     "本资源对 GEO 全部 66 个慢性鼻窦炎/鼻息肉人类数据集逐个策展（核心集 30），对合格的 bulk 队列逐个统一重跑差异分析、"
+     "对单细胞数据集统一注释到一套细胞类型词表、对 GeoMx 空间数据按区室整理，与 bulk/单细胞三方对齐。所有结果均可在线查询与下载。")
+_stat = [
+    ("series_curated", "Curated GSE series", "策展 GSE 系列"),
+    ("core", "Core set", "核心集"),
+    ("samples", "Total census samples", "普查样本总数"),
+    ("bulk_cohorts", "Bulk DE cohorts", "bulk 差异队列"),
+    ("bulk_ev", "Bulk gene\u00d7cohort evidence", "bulk 基因×队列证据"),
+    ("sc_ds", "Single-cell datasets", "单细胞数据集"),
+    ("sc_cells", "Single cells", "单细胞（细胞数）"),
+    ("sc_donors", "Single-cell donor units", "单细胞供体单元"),
+    ("sp_roi", "Spatial ROIs", "空间 ROI"),
+    ("sp_genes", "Spatial panel genes", "空间 panel 基因"),
+    ("endotype", "Series with endotype labels", "自带内型标签系列"),
+]
+for _k, _e, _z in _stat:
+    _def("stat_" + _k, _e, _z)
+_def("idx_layers_h", "Three evidence layers", "三层证据")
+_def("idx_bulk",
+     "<b>Bulk</b>: per-cohort differential analysis across 16 cohorts (30 contrasts); "
+     "evidence matrix of 19,266 protein-coding genes \u00d7 cohorts. Expression matrices are "
+     "never merged across platforms \u2014 aggregation happens at the results level only "
+     "(direction / effect size / significance).",
+     "<b>Bulk</b>：16 个队列逐队列差异分析（30 个对比），19,266 蛋白编码基因×队列证据矩阵。跨平台不合并表达矩阵，只在结果层汇总（方向/效应量/显著性）。")
+_def("idx_sc",
+     "<b>Single-cell</b>: unified annotation of 10 datasets (25-class cell vocabulary); "
+     "476,254 cells, 105 donor units; differential statistics at donor level (pseudobulk); "
+     "17,631 genes \u00d7 41 contrasts.",
+     "<b>单细胞</b>：10 个数据集统一注释（25 类细胞词表），476,254 细胞、105 供体单元；差异统计以供体为单位（pseudobulk），17,631 基因×41 对比。")
+_def("idx_sp",
+     "<b>Spatial</b>: GSE235714 GeoMx, 40 ROIs (CD45+ immune / PanCK+ epithelial compartments), "
+     "1,480-gene CTA panel \u2014 donor-level differential analysis found zero FDR&lt;0.05 genes in "
+     "either compartment, so the spatial layer serves as a compartment-localization/display layer, "
+     "not an independent evidence layer; only descriptive values are shown, alongside compartment "
+     "logFC and the confounding caveat.",
+     "<b>空间</b>：GSE235714 GeoMx 40 ROI（CD45+ 免疫 / PanCK+ 上皮区室），1,480 基因 CTA panel——"
+     "<b>供体级差异分析两区室 FDR&lt;0.05 均为 0</b>，空间层定位为区室定位/展示层，不作为独立证据层；只展示描述性值，见区室 logFC 与混杂声明。")
+_def("idx_start_h", "Quick start", "快速开始")
+_def("idx_start",
+     "Look up a gene (e.g. CLC, IL33): <a href=\"gene.html\"><b>Gene query \u2192</b></a>; "
+     "browse all datasets and known limitations: <a href=\"cohorts.html\"><b>Cohorts &amp; datasets \u2192</b></a>; "
+     "bulk downloads: <a href=\"downloads.html\"><b>Data downloads \u2192</b></a>.",
+     "查一个基因（如 CLC、IL33）：<a href=\"gene.html\"><b>基因查询页 \u2192</b></a>；"
+     "浏览全部数据集与已知限制：<a href=\"cohorts.html\"><b>队列与数据集 \u2192</b></a>；"
+     "批量取数：<a href=\"downloads.html\"><b>数据下载 \u2192</b></a>。")
+_def("idx_honest",
+     "<b>Honesty statement (please read before use)</b>: cohort designs differ substantially "
+     "\u2014 tissue confounding (GSE198950), no healthy controls (GSE189690, GSE330761), weak signal "
+     "from primary cultures (GSE69093), tonsil controls (GSE270953), AERD single arm (GSE196169), and more. "
+     "Each cohort\u2019s limitations are annotated next to its data; the \u2018Cohorts &amp; datasets\u2019 page has the full table.",
+     "<b>诚实声明（使用前请读）</b>：各队列的设计差异很大——组织混杂（GSE198950）、无健康对照（GSE189690、GSE330761）、"
+     "原代培养弱信号（GSE69093）、扁桃体对照（GSE270953）、AERD 单臂（GSE196169）等。每个队列的限制标注在其数据旁，“队列与数据集”页有全表。")
+
+# --- gene page (static part) ---
+_def("gene_ph", "Enter gene symbol, e.g. CLC", "输入基因符号，如 CLC")
+_def("gene_go", "Search", "查询")
+_def("gene_quick", "Quick genes:", "常用基因：")
+
+# --- cohorts page ---
+_def("co_bulk_h", "Bulk differential-analysis cohorts (16)", "Bulk 差异分析队列（16）")
+_def("co_th_id", "Series", "系列")
+_def("co_th_contrast", "Primary contrast (case vs control)", "主对比（case vs control）")
+_def("co_th_method", "Method", "方法")
+_def("co_th_sig", "Genes with FDR&lt;0.05", "FDR&lt;0.05 基因数")
+_def("co_th_note", "Notes / limitations", "备注 / 限制")
+_def("co_th_cells", "Cells", "细胞数")
+_def("co_th_donors", "Donors", "供体")
+_def("co_th_design", "Design", "设计")
+_def("co_sc_h", "Single-cell unified-annotation datasets (10)", "单细胞统一注释数据集（10）")
+_def("co_sc_intro",
+     "476,254 cells and 105 donor units in total; annotated to a unified 25-class cell vocabulary; "
+     "differential statistics at donor level (pseudobulk).",
+     "共 476,254 细胞、105 供体单元；注释到统一 25 类细胞词表；差异统计以供体为单位（pseudobulk）。")
+_def("co_sp_h", "Spatial datasets (1)", "空间数据集（1）")
+_def("co_sp_intro",
+     "GeoMx DSP: 40 ROIs \u00d7 10 donors (CRSwNP 6 / controls 4); panel of 1,480 genes "
+     "(Nanostring DSP Human CTA; measured, not whole-transcriptome).",
+     "GeoMx DSP：40 ROI × 10（CRSwNP 6 / 对照 4）供体；panel 1,480 基因（Nanostring DSP Human CTA；实测，非全转录组）。")
+_def("co_sp_lim", "\u26a0 Spatial layer limits:", "\u26a0 空间层限制：")
+_def("co_other_h", "Other", "其他")
+_def("co_o1",
+     "11 pending series: each has named items to verify; below core standard, excluded from queries "
+     "(see the curation report).",
+     "待核集 11 个系列：每个都有具名待核项，未达到 core 标准，不进入查询（详见策展报告）。")
+_def("co_o2",
+     "25 excluded series: superseries parents, healthy in-vitro models, adjacent diseases "
+     "(allergic rhinitis/asthma), non-expression omics, etc. \u2014 per-series reasons in the curation table.",
+     "剔除 25 个系列：superseries 父记录、健康体外模型、邻近疾病（过敏性鼻炎/哮喘）、非表达组学等，逐条原因见策展表。")
+_def("co_o3",
+     "3 core ncRNA-array series (GSE169375/GSE169376/GSE32300): different molecule type; excluded "
+     "from this round of bulk DE; results provided separately.",
+     "3 个 ncRNA 阵列核心系列（GSE169375/GSE169376/GSE32300）：分子类型不同，本轮未进入 bulk DE；结果文件另行提供。")
+_def("co_lim_label", "limitation:", "限制：")
+_def("co_warn", "\u26a0 Limitation:", "\u26a0 限制：")
+
+# --- downloads page ---
+_dl = [
+    ("dl_evlfc",
+     "Bulk: logFC of 19,266 protein-coding genes \u00d7 16 cohorts (primary contrasts; probes collapsed by min-p).",
+     "Bulk：19,266 蛋白编码基因 × 16 队列 logFC（主对比；探针按 min-p 塌缩）。"),
+    ("dl_evfdr",
+     "Bulk: BH-FDR for the same matrix.",
+     "Bulk：同上矩阵的 BH-FDR。"),
+    ("dl_dezip",
+     "Bulk: full per-cohort differential results for 30 contrasts (symbol, logFC, p, FDR).",
+     "Bulk：30 个对比的逐队列全量差异结果（symbol, logFC, p, FDR）。"),
+    ("dl_runlog",
+     "Bulk: record of n, scale verdicts, methods and status for 30 contrasts.",
+     "Bulk：30 个对比的 n、尺度裁决、方法、状态记录。"),
+    ("dl_panel",
+     "Bulk: per-cohort values of the 8-gene positive-control panel (CLC/CCL26/CCL13/IL33/TSLP/POSTN/SERPINB2/ALOX15).",
+     "Bulk：8 基因阳性对照 panel（CLC/CCL26/CCL13/IL33/TSLP/POSTN/SERPINB2/ALOX15）逐队列数值。"),
+    ("dl_scev",
+     "Single-cell: 17,631 genes \u00d7 41 cell-type-level pseudobulk contrasts (logFC+FDR).",
+     "单细胞：17,631 基因 × 41 个细胞类型级 pseudobulk 对比（logFC+FDR）。"),
+    ("dl_comp",
+     "Single-cell: composition table of 1,431 rows (dataset \u00d7 donor \u00d7 group \u00d7 cell type \u00d7 fraction).",
+     "单细胞：1,431 行 dataset×donor×group×celltype×fraction 组成表。"),
+    ("dl_align",
+     "Spatial: 1,480 panel genes \u00d7 39 columns (two spatial compartments + 16 bulk cohorts + same-study single-cell averages).",
+     "空间：1,480 panel 基因 × 39 列（空间两区室 + 16 bulk 队列 + 同研究单细胞平均）。"),
+    ("dl_roi",
+     "Spatial: 40-ROI metadata (including QC flag GSM7508390).",
+     "空间：40 ROI 元数据（含 QC 标记 GSM7508390）。"),
+    ("dl_cur",
+     "Master curation table: per-series grading of all 66 series (verdict / evidence notes).",
+     "策展总表：66 个系列逐个定性（verdict/证据注记）。"),
+]
+for _k, _e, _z in _dl:
+    _def(_k, _e, _z)
+_def("dl_usage",
+     "<b>Usage notes</b>: all files are products of uniform reanalysis; each file\u2019s generation "
+     "protocol is on the \u2018Methods &amp; limitations\u2019 page; annotated h5ad objects are too large "
+     "to host here (available from the authors on request).",
+     "<b>使用说明</b>：所有文件均为统一再分析产出；每个文件的生成口径见“方法与限制”页；"
+     "已注释的 h5ad 对象体积大，未放上本站（可联系作者获取）。")
+
+# --- methods page ---
+_def("m_flow_h", "Workflow", "流程")
+_mf = [
+    ("m_f1",
+     "<b>Census &amp; curation</b>: each of the 66 human CRS / nasal-polyp GEO series was individually "
+     "verified (tissue / grouping / platform / sample size) and graded core / pending / excluded with "
+     "per-series evidence notes; endotype labels come only from deposited metadata, never inferred.",
+     "<b>普查与策展</b>：GEO 人类 CRS/鼻息肉查询 66 系列逐个验明（组织/分组/平台/样本量），定级 core/pending/excluded，逐条有证据注记；内型标签只认 deposited metadata，不推测。"),
+    ("m_f2",
+     "<b>Uniform bulk reanalysis</b>: independent differential analysis per cohort (counts \u2192 DESeq2; "
+     "continuous values \u2192 limma; paired designs \u2192 paired models), preceded by a three-way scale "
+     "check; probes collapsed to symbols by min-p; cross-platform aggregation at the results level only "
+     "\u2014 expression matrices are never merged.",
+     "<b>Bulk 统一重分析</b>：逐队列独立差异分析（counts→DESeq2；连续值→limma；配对→配对模型），先做尺度三方核查；探针按 min-p 塌缩到 symbol；跨平台只在结果层汇总，不合并表达矩阵。"),
+    ("m_f3",
+     "<b>Unified single-cell annotation</b>: Leiden clustering + canonical marker scoring to a unified "
+     "25-class vocabulary (scored on the full gene matrix, not an HVG subset); positive-control "
+     "assertions (housekeeping / epithelial / immune markers) must pass before results are released; "
+     "differential statistics at donor level (pseudobulk).",
+     "<b>单细胞统一注释</b>：leiden 聚类 + 规范 marker 打分到统一 25 类词表（全基因矩阵打分，非 HVG 子集）；出结果前先过阳性对照断言（管家/上皮/免疫标志）；差异统计以供体为单位（pseudobulk）。"),
+    ("m_f4",
+     "<b>Spatial</b>: GeoMx organized by compartment; with 6-vs-4 donors no gene reaches FDR "
+     "significance, so the spatial layer serves only as a compartment-localization/display layer, not "
+     "independent evidence; descriptive values are shown with fixed annotations of low power and "
+     "tissue confounding.",
+     "<b>空间</b>：GeoMx 按区室整理；6v4 供体下 FDR 全为 0，故空间层只作区室定位/展示层，不做独立证据；展示描述性值并固定标注低功效与组织混杂。"),
+    ("m_f5",
+     "<b>Website</b>: precomputed results rendered as a static viewer; known limitations of each dataset "
+     "are annotated next to the data.",
+     "<b>网站</b>：预计算结果做成静态查看器；每处数据的已知限制标注在数据旁。"),
+]
+for _k, _e, _z in _mf:
+    _def(_k, _e, _z)
+_def("m_lim_h", "Known limitations (full list)", "已知限制（全文）")
+_ml = [
+    ("m_l1",
+     "Endotype (eosinophilic / non-eosinophilic) labels come from deposited metadata in only 6 series, "
+     "most with small samples \u2014 this site does not predict tissue eosinophil counts; it only shows "
+     "program-/gene-level evidence.",
+     "内型（嗜酸/非嗜酸）标签只有 6 个系列自带 deposited metadata，且多为小样本——本站不做组织嗜酸计数的预测，只做程序/基因层面的证据展示。"),
+    ("m_l2",
+     "Six bulk cohorts have n\u22647 per group or low power (GSE72713, GSE150846, GSE174681, GSE330761, "
+     "GSE36830, GSE194282) \u2014 their weight in the evidence matrix should be discounted.",
+     "6 个 bulk 队列 n≤7/组或功效低（GSE72713、GSE150846、GSE174681、GSE330761、GSE36830、GSE194282），证据矩阵中权重应下调。"),
+    ("m_l3",
+     "GSE198950 has tissue confounding, GSE69093 a genuine weak signal, GSE189690/GSE330761 no healthy "
+     "controls \u2014 cross-cohort comparisons must be stratified, never directly merged.",
+     "GSE198950 组织混杂、GSE69093 真实弱信号、GSE189690/GSE330761 无健康对照——跨队列比较时需分层看，不可直接合并。"),
+    ("m_l4",
+     "GSE158277 (paired N-ERD, n=20): GEO has only a results table, no expression matrix \u2014 "
+     "reanalysis was not possible; it can be added if raw data become available.",
+     "GSE158277（配对 N-ERD，n=20）GEO 只有结果表无表达矩阵，未能重分析；若获原始数据可补入。"),
+    ("m_l5",
+     "Single-cell: sorted preparations (GSE179292/GSE324445/GSE270953/GSE255544, etc.) do not "
+     "represent whole tissue; GSE324445\u2019s nominal sort disagrees with measured composition; "
+     "GSE270953 uses tonsil controls; GSE276503 has only 2 controls.",
+     "单细胞：分选制剂（GSE179292/GSE324445/GSE270953/GSE255544 等）组成不代表整组织；GSE324445 名义分选与实测组成不符；GSE270953 对照为扁桃体；GSE276503 对照仅 2 例。"),
+    ("m_l6",
+     "Spatial: see the four spatial-layer limitations on the \u2018Cohorts &amp; datasets\u2019 page.",
+     "空间：见“队列与数据集”页的四条空间层限制。"),
+    ("m_l7",
+     "Secondary analysis of public data: ethics approval for the original studies rests with those "
+     "studies; this site collects no new samples or personal information.",
+     "公开数据二次分析：原始研究的伦理批准由各原始研究承担；本站不收集任何新样本与个人信息。"),
+]
+for _k, _e, _z in _ml:
+    _def(_k, _e, _z)
+_def("m_src_h", "Data sources", "数据来源")
+_def("m_src",
+     "All data come from public GEO series (PMID and GEO links for each series are on the "
+     "\u2018Cohorts &amp; datasets\u2019 page); the curation and reanalysis reports plus this site\u2019s "
+     "build scripts are public with the code repository, so every number is reproducible.",
+     "全部来自 GEO 公开系列（各系列 PMID 与 GEO 链接见“队列与数据集”页）；策展报告、重分析报告与本网站构建脚本随代码仓库公开，全部数字可复现。")
+_def("m_auth_h", "Authors &amp; contact", "作者与联系")
+_def("m_auth",
+     "Authors: [to be filled] \u00b7 Corresponding: [to be filled] \u00b7 Cite this resource: [to be filled]",
+     "作者：[待填] · 通讯：[待填] · 引用本资源：[待填]")
+
 # ---------------- cohort metadata (from step2_report.md, numbers exact) --------
+# n / n_en: design strings for the static cohorts page + dynamic gene page
+# note / caveat (+ _en): shown next to the data (data-i18n keys generated below)
 BULK_COHORTS = [
-    {"id": "GSE136825", "n": "息肉(75) vs 对照下鼻甲(28)", "method": "RNA-seq · DESeq2",
-     "sig": "5,320", "note": "本宇宙最大的 CRSwNP bulk 队列；阳性对照 panel 行为正确（CLC +3.87）。"},
-    {"id": "GSE179265", "n": "CRSwNP(17) vs 健康对照(7)", "method": "RNA-seq · DESeq2",
-     "sig": "5,278", "note": "附加对比：美国 vs 日本息肉。阳性对照 7/8 显著上调（CLC +7.51）。"},
-    {"id": "GSE338426", "n": "CRSwNP(14) vs 对照(8)", "method": "RNA-seq · DESeq2",
-     "sig": "2,273", "note": "内型标签（嗜酸/非嗜酸）来自 deposited metadata。CLC +7.97。"},
-    {"id": "GSE198950", "n": "CRSwNP(5) vs 非CRS(4)", "method": "RNA-seq · DESeq2",
-     "sig": "3,141", "caveat": "组织混杂：病例为筛窦组织、对照为下鼻甲组织——IL33/POSTN 显著反向可能源于此，使用时必须注明。"},
-    {"id": "GSE267331", "n": "dupilumab 治疗后 vs 前（47 对配对）", "method": "芯片 · limma 配对",
-     "sig": "4,856", "note": "唯一的治疗纵向队列（SINUS-52 鼻刷）：CLC/POSTN/SERPINB2 显著下调，符合治疗逆转预期；安慰剂臂 0 个显著。"},
-    {"id": "GSE189690", "n": "N-ERD(13) vs 非 N-ERD CRSwNP(13)", "method": "RNA-seq · DESeq2",
-     "sig": "12", "caveat": "无健康对照：仅疾病亚型对比，不参与病例-对照方向先验。"},
-    {"id": "GSE313186", "n": "毒素暴露 CRS(10) vs 未暴露对照(10)", "method": "RNA-seq · DESeq2",
-     "sig": "106", "note": "退伍军人部署暴露队列；肥大细胞表型。"},
-    {"id": "GSE213809", "n": "刺激后 NP-ILC2 vs 外周血 ILC2(14v14)", "method": "RNA-seq · DESeq2",
-     "sig": "4", "note": "分选 ILC2 亚群图谱型，非病例对照队列设计。"},
-    {"id": "GSE150846", "n": "鼻息肉 ILC2 vs 外周血 ILC2(3v3)", "method": "芯片 · limma",
-     "sig": "606", "note": "分选 ILC2 亚群图谱型；n 极小。"},
-    {"id": "GSE174681", "n": "息肉 ASC vs 外周血 naive B(3v4)", "method": "TMM · limma",
-     "sig": "1,813", "note": "分选 B 细胞亚群图谱型，非病例对照队列设计。"},
-    {"id": "GSE330761", "n": "CRSwNP-MCTC vs CRSsNP-MCTC(3v3)", "method": "txi counts · voom",
-     "sig": "443", "caveat": "无健康对照；分选肥大细胞亚群图谱型（3v3）。"},
-    {"id": "GSE194282", "n": "鼻息肉(7) vs 对照(7)", "method": "芯片 · limma",
-     "sig": "251", "note": "对照含肿瘤旁正常组织；样本量小，功效有限。"},
-    {"id": "GSE36830", "n": "CRSwNP(12) vs 钩突对照(6)", "method": "芯片 · limma",
-     "sig": "0", "note": "表达矩阵为线性尺度，已 log2(x+1) 转换；0 个 FDR 显著为数据本底。"},
-    {"id": "GSE69093", "n": "病例 vs 对照（校正细胞类型）", "method": "芯片 · limma+协变量",
-     "sig": "0", "caveat": "原代培养细胞：全转录组 0 显著但 p 值富集于小 p 端，判为真实弱信号（非技术错误）。系列注册平台误标（Affymetrix），已按 Illumina HumanHT-12 v4 注释修正。"},
-    {"id": "GSE70898_70900", "n": "息肉 T 细胞 vs 正常鼻黏膜 T 细胞(12v6)", "method": "芯片 · limma",
-     "sig": "9,426", "note": "同研究跨系列（GSE70898+GSE70900）合并；短期 explant 培养；平台误标已修正。"},
-    {"id": "GSE72713", "n": "CRSwNP(6) vs 正常对照(3)", "method": "FPKM · limma",
-     "sig": "129", "note": "n 极小（3/3/3）；lncRNA+mRNA 混合文件。"},
+    {"id": "GSE136825", "n": "息肉(75) vs 对照下鼻甲(28)", "n_en": "Polyp (75) vs control inferior turbinate (28)", "method": "RNA-seq · DESeq2",
+     "sig": "5,320", "note": "本宇宙最大的 CRSwNP bulk 队列；阳性对照 panel 行为正确（CLC +3.87）。",
+     "note_en": "The largest CRSwNP bulk cohort in this collection; positive-control panel behaves correctly (CLC +3.87)."},
+    {"id": "GSE179265", "n": "CRSwNP(17) vs 健康对照(7)", "n_en": "CRSwNP (17) vs healthy controls (7)", "method": "RNA-seq · DESeq2",
+     "sig": "5,278", "note": "附加对比：美国 vs 日本息肉。阳性对照 7/8 显著上调（CLC +7.51）。",
+     "note_en": "Additional contrast: US vs Japanese polyps. Positive controls 7/8 significantly up (CLC +7.51)."},
+    {"id": "GSE338426", "n": "CRSwNP(14) vs 对照(8)", "n_en": "CRSwNP (14) vs controls (8)", "method": "RNA-seq · DESeq2",
+     "sig": "2,273", "note": "内型标签（嗜酸/非嗜酸）来自 deposited metadata。CLC +7.97。",
+     "note_en": "Endotype labels (eosinophilic/non-eosinophilic) from deposited metadata. CLC +7.97."},
+    {"id": "GSE198950", "n": "CRSwNP(5) vs 非CRS(4)", "n_en": "CRSwNP (5) vs non-CRS (4)", "method": "RNA-seq · DESeq2",
+     "sig": "3,141", "caveat": "组织混杂：病例为筛窦组织、对照为下鼻甲组织——IL33/POSTN 显著反向可能源于此，使用时必须注明。",
+     "caveat_en": "Tissue confounding: cases are ethmoid tissue, controls are inferior turbinate — the significant reversal of IL33/POSTN may stem from this; must be stated when used."},
+    {"id": "GSE267331", "n": "dupilumab 治疗后 vs 前（47 对配对）", "n_en": "Dupilumab post- vs pre-treatment (47 paired pairs)", "method": "芯片 · limma 配对",
+     "sig": "4,856", "note": "唯一的治疗纵向队列（SINUS-52 鼻刷）：CLC/POSTN/SERPINB2 显著下调，符合治疗逆转预期；安慰剂臂 0 个显著。",
+     "note_en": "The only treatment longitudinal cohort (SINUS-52 nasal brushing): CLC/POSTN/SERPINB2 significantly down, consistent with treatment reversal; 0 significant in the placebo arm."},
+    {"id": "GSE189690", "n": "N-ERD(13) vs 非 N-ERD CRSwNP(13)", "n_en": "N-ERD (13) vs non-N-ERD CRSwNP (13)", "method": "RNA-seq · DESeq2",
+     "sig": "12", "caveat": "无健康对照：仅疾病亚型对比，不参与病例-对照方向先验。",
+     "caveat_en": "No healthy controls: disease-subtype contrast only; excluded from case–control directional priors."},
+    {"id": "GSE313186", "n": "毒素暴露 CRS(10) vs 未暴露对照(10)", "n_en": "Toxin-exposed CRS (10) vs unexposed controls (10)", "method": "RNA-seq · DESeq2",
+     "sig": "106", "note": "退伍军人部署暴露队列；肥大细胞表型。",
+     "note_en": "Veteran deployment-exposure cohort; mast-cell phenotype."},
+    {"id": "GSE213809", "n": "刺激后 NP-ILC2 vs 外周血 ILC2(14v14)", "n_en": "Stimulated NP-ILC2 vs peripheral-blood ILC2 (14v14)", "method": "RNA-seq · DESeq2",
+     "sig": "4", "note": "分选 ILC2 亚群图谱型，非病例对照队列设计。",
+     "note_en": "Sorted-ILC2 subset atlas; not a case–control design."},
+    {"id": "GSE150846", "n": "鼻息肉 ILC2 vs 外周血 ILC2(3v3)", "n_en": "Nasal-polyp ILC2 vs peripheral-blood ILC2 (3v3)", "method": "芯片 · limma",
+     "sig": "606", "note": "分选 ILC2 亚群图谱型；n 极小。",
+     "note_en": "Sorted-ILC2 subset atlas; very small n."},
+    {"id": "GSE174681", "n": "息肉 ASC vs 外周血 naive B(3v4)", "n_en": "Polyp ASC vs peripheral-blood naive B (3v4)", "method": "TMM · limma",
+     "sig": "1,813", "note": "分选 B 细胞亚群图谱型，非病例对照队列设计。",
+     "note_en": "Sorted B-cell subset atlas; not a case–control design."},
+    {"id": "GSE330761", "n": "CRSwNP-MCTC vs CRSsNP-MCTC(3v3)", "n_en": "CRSwNP-MCTC vs CRSsNP-MCTC (3v3)", "method": "txi counts · voom",
+     "sig": "443", "caveat": "无健康对照；分选肥大细胞亚群图谱型（3v3）。",
+     "caveat_en": "No healthy controls; sorted mast-cell subset atlas (3v3)."},
+    {"id": "GSE194282", "n": "鼻息肉(7) vs 对照(7)", "n_en": "Nasal polyps (7) vs controls (7)", "method": "芯片 · limma",
+     "sig": "251", "note": "对照含肿瘤旁正常组织；样本量小，功效有限。",
+     "note_en": "Controls include tumor-adjacent normal tissue; small sample size, limited power."},
+    {"id": "GSE36830", "n": "CRSwNP(12) vs 钩突对照(6)", "n_en": "CRSwNP (12) vs uncinate-process controls (6)", "method": "芯片 · limma",
+     "sig": "0", "note": "表达矩阵为线性尺度，已 log2(x+1) 转换；0 个 FDR 显著为数据本底。",
+     "note_en": "Expression matrix was linear-scale, log2(x+1)-transformed; zero FDR-significant genes reflect the data background."},
+    {"id": "GSE69093", "n": "病例 vs 对照（校正细胞类型）", "n_en": "Cases vs controls (cell-type-adjusted)", "method": "芯片 · limma+协变量",
+     "sig": "0", "caveat": "原代培养细胞：全转录组 0 显著但 p 值富集于小 p 端，判为真实弱信号（非技术错误）。系列注册平台误标（Affymetrix），已按 Illumina HumanHT-12 v4 注释修正。",
+     "caveat_en": "Primary cultured cells: zero transcriptome-wide significant genes but p-values enriched at the small-p end — judged a genuine weak signal (not a technical error). Series platform was mislabeled at registration (Affymetrix); corrected to Illumina HumanHT-12 v4 annotation."},
+    {"id": "GSE70898_70900", "n": "息肉 T 细胞 vs 正常鼻黏膜 T 细胞(12v6)", "n_en": "Polyp T cells vs normal nasal-mucosa T cells (12v6)", "method": "芯片 · limma",
+     "sig": "9,426", "note": "同研究跨系列（GSE70898+GSE70900）合并；短期 explant 培养；平台误标已修正。",
+     "note_en": "Merged across two series of the same study (GSE70898+GSE70900); short-term explant culture; platform mislabeling corrected."},
+    {"id": "GSE72713", "n": "CRSwNP(6) vs 正常对照(3)", "n_en": "CRSwNP (6) vs normal controls (3)", "method": "FPKM · limma",
+     "sig": "129", "note": "n 极小（3/3/3）；lncRNA+mRNA 混合文件。",
+     "note_en": "Very small n (3/3/3); mixed lncRNA+mRNA files."},
 ]
 BULK_IDS = [c["id"] for c in BULK_COHORTS]
 
 SC_DATASETS = [
     {"id": "GSE235711", "cells": "55,827", "donors": "20", "design": "对照5 / CRSsNP5 / CRSwNP10",
-     "note": "Liao Immunity 2025；完整组织图谱。CRSsNP vs 对照在供体水平几乎无显著基因（5v5，数据本底，非分析失败）。"},
-    {"id": "GSE276503", "cells": "177,666", "donors": "29 供体单元", "design": "对照2 / CRSwNP27",
-     "caveat": "对照仅 2 例（统计慎用）；4 个样本的存放端矩阵损坏已剔除；供体结构未声明。"},
+     "design_en": "Controls 5 / CRSsNP 5 / CRSwNP 10",
+     "note": "Liao Immunity 2025；完整组织图谱。CRSsNP vs 对照在供体水平几乎无显著基因（5v5，数据本底，非分析失败）。",
+     "note_en": "Liao Immunity 2025; complete tissue atlas. CRSsNP vs controls has almost no donor-level significant genes (5v5, data background, not an analysis failure)."},
+    {"id": "GSE276503", "cells": "177,666", "donors": "29 供体单元", "donors_en": "29 donor units", "design": "对照2 / CRSwNP27",
+     "design_en": "Controls 2 / CRSwNP 27",
+     "caveat": "对照仅 2 例（统计慎用）；4 个样本的存放端矩阵损坏已剔除；供体结构未声明。",
+     "caveat_en": "Only 2 controls (use statistics with caution); 4 samples\u2019 matrices corrupted at the source and excluded; donor structure not declared."},
     {"id": "GSE270953", "cells": "51,926", "donors": "10", "design": "息肉5 / 扁桃体5",
-     "caveat": "对照为扁桃体（免疫学上与鼻黏膜差异大），解读须加 caveat；CITE-seq 臂未处理。"},
+     "design_en": "Polyps 5 / tonsils 5",
+     "caveat": "对照为扁桃体（免疫学上与鼻黏膜差异大），解读须加 caveat；CITE-seq 臂未处理。",
+     "caveat_en": "Controls are tonsils (immunologically distinct from nasal mucosa); interpret with this caveat; CITE-seq arm not processed."},
     {"id": "GSE249159", "cells": "42,041", "donors": "6", "design": "息肉3 / 外周血3",
-     "note": "小鼠臂已排除；仅 CD4_T 满足 3v3 DE 条件。"},
+     "design_en": "Polyps 3 / peripheral blood 3",
+     "note": "小鼠臂已排除；仅 CD4_T 满足 3v3 DE 条件。",
+     "note_en": "Mouse arm excluded; only CD4_T meets the 3v3 DE requirement."},
     {"id": "GSE196169", "cells": "37,168", "donors": "13", "design": "AERD 单臂",
-     "caveat": "存放数据无 CRSwNP 对照臂，已降级为单臂组成图谱；网站不列出该对比。"},
+     "design_en": "AERD single arm",
+     "caveat": "存放数据无 CRSwNP 对照臂，已降级为单臂组成图谱；网站不列出该对比。",
+     "caveat_en": "Deposited data has no CRSwNP control arm; downgraded to a single-arm composition atlas; this contrast is not listed on the site."},
     {"id": "GSE202100", "cells": "38,514", "donors": "5", "design": "CRSwNP 单臂（上皮刷检）",
-     "note": "tuft 信号（POU2F3/TRPM5）富集于 ionocyte 簇，未强行拆分，如实标注。"},
+     "design_en": "CRSwNP single arm (epithelial brushing)",
+     "note": "tuft 信号（POU2F3/TRPM5）富集于 ionocyte 簇，未强行拆分，如实标注。",
+     "note_en": "Tuft signal (POU2F3/TRPM5) enriched in the ionocyte cluster; not forcibly split, annotated as-is."},
     {"id": "GSE324445", "cells": "30,954", "donors": "10", "design": "息肉6 / 外周血4",
-     "caveat": "名义“分选 ILC2”，实测仅 36% 为真 ILC2、56% 为 CD4_T——网站展示实测组成，不用名义值。"},
+     "design_en": "Polyps 6 / peripheral blood 4",
+     "caveat": "名义“分选 ILC2”，实测仅 36% 为真 ILC2、56% 为 CD4_T——网站展示实测组成，不用名义值。",
+     "caveat_en": "Nominally \u2018sorted ILC2\u2019; measured only 36% true ILC2 and 56% CD4_T \u2014 the site shows measured composition, not the nominal label."},
     {"id": "GSE255544", "cells": "20,394", "donors": "7", "design": "CRSwNP 疾病单臂（淋巴细胞）",
-     "note": "待核→转正（GSM 标题证实 CRSwNP，PMID 38589618）。"},
+     "design_en": "CRSwNP single arm (lymphocytes)",
+     "note": "待核→转正（GSM 标题证实 CRSwNP，PMID 38589618）。",
+     "note_en": "Pending \u2192 promoted to core (GSM titles confirm CRSwNP, PMID 38589618)."},
     {"id": "GSE156285", "cells": "10,803", "donors": "4", "design": "CRS 疾病单臂组成图谱",
-     "note": "旧版 10x 注释缺若干上皮 marker，部分簇只能标 ambiguous。"},
+     "design_en": "CRS single-arm composition atlas",
+     "note": "旧版 10x 注释缺若干上皮 marker，部分簇只能标 ambiguous。",
+     "note_en": "Older 10x annotation lacks several epithelial markers; some clusters can only be labeled ambiguous."},
     {"id": "GSE179292", "cells": "10,961", "donors": "4", "design": "CRSwNP 分选 T 细胞组成图谱",
-     "note": "分选 T 细胞制剂。"},
+     "design_en": "CRSwNP sorted-T-cell composition atlas",
+     "note": "分选 T 细胞制剂。",
+     "note_en": "Sorted T-cell preparation."},
 ]
 
 SPATIAL_INFO = {
     "id": "GSE235714", "roi": 40, "donors": "10（CRSwNP 6 / 对照 4）",
+    "donors_en": "10 (CRSwNP 6 / controls 4)",
     "panel": "1,480 基因（Nanostring DSP Human CTA；实测，非全转录组）",
+    "panel_en": "1,480 genes (Nanostring DSP Human CTA; measured, not whole-transcriptome)",
     "caveats": [
-        "供体级差异分析两区室 FDR<0.05 均为 0——空间层为“区室定位/展示层”，不是疾病差异的独立证据层；只展示描述性区室 logFC，不做一致性声称。",
-        "疾病与组织完全混杂：CRSwNP 供体全为鼻息肉组织，对照全为筛窦组织。",
-        "GSM7508390（CRSwNP_8 CD45+ ROI2）QC 标记 'Low Surface Area'（保留未剔除）。",
-        "panel 覆盖率：bulk top100 基因并集仅 14.6% 在 panel 中；不在 panel 的基因（如 CLC/CCL26/POSTN/ALOX15）明确返回“不在 CTA panel 中”。",
+        ("供体级差异分析两区室 FDR<0.05 均为 0——空间层为“区室定位/展示层”，不是疾病差异的独立证据层；只展示描述性区室 logFC，不做一致性声称。",
+         "Donor-level differential analysis finds zero FDR<0.05 genes in either compartment \u2014 the spatial "
+         "layer is a compartment-localization/display layer, not an independent evidence layer for disease "
+         "differences; only descriptive compartment logFC values are shown, with no concordance claims."),
+        ("疾病与组织完全混杂：CRSwNP 供体全为鼻息肉组织，对照全为筛窦组织。",
+         "Disease is fully confounded with tissue: all CRSwNP donors are polyp tissue, all controls are ethmoid tissue."),
+        ("GSM7508390（CRSwNP_8 CD45+ ROI2）QC 标记 'Low Surface Area'（保留未剔除）。",
+         "GSM7508390 (CRSwNP_8 CD45+ ROI2) flagged \u2018Low Surface Area\u2019 in QC (retained, not removed)."),
+        ("panel 覆盖率：bulk top100 基因并集仅 14.6% 在 panel 中；不在 panel 的基因（如 CLC/CCL26/POSTN/ALOX15）明确返回“不在 CTA panel 中”。",
+         "Panel coverage: only 14.6% of the union of bulk top-100 genes is in the panel; genes not in the panel "
+         "(e.g. CLC/CCL26/POSTN/ALOX15) explicitly return \u2018not in the CTA panel\u2019."),
     ],
 }
+
+# register data-driven note/caveat strings into the i18n dict (keys reused by
+# cohorts.html AND the dynamic gene page, so both languages show the same text)
+for _c in BULK_COHORTS:
+    if _c.get("note"):
+        _def("note_" + _c["id"], _c["note_en"], _c["note"])
+    if _c.get("caveat"):
+        _def("cav_" + _c["id"], _c["caveat_en"], _c["caveat"])
+    _def("n_" + _c["id"], _c["n_en"], _c["n"])  # cohort design strings (bulk)
+for _d in SC_DATASETS:
+    if _d.get("note"):
+        _def("sc_note_" + _d["id"], _d["note_en"], _d["note"])
+    if _d.get("caveat"):
+        _def("sc_cav_" + _d["id"], _d["caveat_en"], _d["caveat"])
+    _def("sc_design_" + _d["id"], _d["design_en"], _d["design"])
+    if "donors_en" in _d:
+        _def("sc_donors_" + _d["id"], _d["donors_en"], _d["donors"])
+for _i, (_zh, _en) in enumerate(SPATIAL_INFO["caveats"]):
+    _def(f"sp_cav_{_i}", _en, _zh)
+
+# gene_app.js dynamic strings (JS-side dictionary)
+_def("g_empty", "Please enter a gene symbol.", "请输入基因符号。")
+_def("g_notfound", "No match for", "未找到")
+_def("g_suggest", "Did you mean:", "可能：")
+_def("g_nosim", "No similar symbols.", "无相似符号。")
+_def("g_bulk_t", "Bulk: 16 cohorts (primary contrasts)", "Bulk：16 队列（主对比）")
+_def("g_th_cohort", "Cohort", "队列")
+_def("g_th_contrast", "Contrast (dataset \u00b7 cell type \u00b7 design)", "对比（数据集 · 细胞类型 · 设计）")
+_def("g_th_comp", "Compartment", "区室")
+_def("g_th_desc", "logFC (donor-level, descriptive)", "logFC（供体级描述值）")
+_def("g_limit_badge", "\u26a0 limit below", "\u26a0 限制见下")
+_def("g_bulk_chart", "Bulk logFC bar chart", "Bulk logFC 条形图")
+_def("g_sc_t", "Single-cell: cell-type-level contrasts", "单细胞：细胞类型级对比")
+_def("g_bulk_nm", "This gene is not in the bulk evidence matrix (not measured).", "该基因不在 bulk 证据矩阵中（未测得）。")
+_def("g_sc_nm", "This gene is not in the single-cell evidence matrix (not measured).", "该基因不在单细胞证据矩阵中（未测得）。")
+_def("g_sp_t", "Spatial (GeoMx, GSE235714)", "空间（GeoMx，GSE235714）")
+_def("g_cd45", "CD45+ immune compartment", "CD45+ 免疫区室")
+_def("g_panck", "PanCK+ epithelial compartment", "PanCK+ 上皮区室")
+_def("g_sp_cav",
+     "\u26a0 Spatial layer limits: donor-level FDR&lt;0.05 is zero in both compartments (6 vs 4 donors); "
+     "these are descriptive values, not independent evidence; disease and tissue are fully confounded "
+     "(CRSwNP = polyp tissue vs controls = ethmoid tissue).",
+     "\u26a0 空间层限制：两区室供体级 FDR&lt;0.05 均为 0（6v4 供体），此为描述性值，非独立证据；"
+     "且疾病与组织完全混杂（CRSwNP=息肉组织 vs 对照=筛窦组织）。")
+_def("g_notpanel",
+     "This gene is <b>not in the GeoMx CTA panel (1,480 genes)</b> \u2014 no spatial data, not a missing value.",
+     "该基因<b>不在 GeoMx CTA panel（1,480 基因）中</b>——无空间数据，非缺失值。")
+_def("g_lim_colon", "limitation:", "限制：")
 
 QUICK_GENES = ["CLC", "CCL26", "CCL13", "IL33", "TSLP", "POSTN", "SERPINB2", "ALOX15",
                "EPAS1", "PTGS2", "BIRC3", "S100A8"]
@@ -116,6 +480,11 @@ def f4g(x):
 def read_csv_dict(path):
     with open(path, newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
+
+def i18n_json():
+    """Embedded dictionary for both languages, key -> {en, zh}."""
+    return json.dumps({k: {"en": v[0], "zh": v[1]} for k, v in _STRINGS.items()},
+                      ensure_ascii=False, separators=(",", ":"))
 
 # ---------------- build gene data ---------------------------------------
 def build_gene_data():
@@ -191,6 +560,9 @@ h3{font-size:16px;margin-top:22px}
 nav{background:#1a6fb5;padding:10px 18px;border-radius:8px;margin-bottom:18px}
 nav a{color:#fff;margin-right:22px;text-decoration:none;font-weight:bold}
 nav a:hover{text-decoration:underline}
+.lang-toggle{float:right;font-weight:bold}
+.lang-toggle a{margin:0 4px;opacity:.6}
+.lang-toggle a.active{opacity:1;text-decoration:underline}
 .card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:14px 0}
 .stat{display:inline-block;background:#e8f1fa;border-radius:8px;padding:12px 18px;margin:6px 10px 6px 0;text-align:center}
 .stat b{font-size:24px;display:block;color:#1a6fb5}
@@ -214,190 +586,241 @@ a{color:#1a6fb5}
 .disc b{color:#b3352b}
 """
 
-NAV = """<nav><a href="index.html">首页</a><a href="gene.html">基因查询</a><a href="cohorts.html">队列与数据集</a><a href="downloads.html">数据下载</a><a href="methods.html">方法与限制</a></nav>"""
+NAV = (f'<nav><a href="index.html" {dk("nav_home")}>{en_of("nav_home")}</a>'
+       f'<a href="gene.html" {dk("nav_gene")}>{en_of("nav_gene")}</a>'
+       f'<a href="cohorts.html" {dk("nav_cohorts")}>{en_of("nav_cohorts")}</a>'
+       f'<a href="downloads.html" {dk("nav_downloads")}>{en_of("nav_downloads")}</a>'
+       f'<a href="methods.html" {dk("nav_methods")}>{en_of("nav_methods")}</a>'
+       '<span class="lang-toggle"><a href="#" data-lang="en" onclick="pa_setLang(\'en\');return false;">EN</a>'
+       ' | <a href="#" data-lang="zh" onclick="pa_setLang(\'zh\');return false;">\u4e2d\u6587</a></span></nav>')
 WORKING_NAME = "PolypAtlas — CRSwNP Multi-omics Resource"
-DISCLAIMER = ('<div class="disc"><b>研究用途声明 / Research use only</b>：'
-              '本站为鼻息肉（CRSwNP）公开转录组数据的整合查询资源，仅供科研参考，'
-              '不提供临床诊断、患病概率或治疗建议。所有数值均为公开数据的统一再分析结果，'
-              '每个队列的已知限制均标注在数据旁。</div>')
-FOOTER = (f'<div class="footer">{WORKING_NAME}（工作名称，可更名） · {VERSION} · 构建日期 {BUILD_DATE} · '
-          '数据来源：GEO 公开数据（各系列见“队列与数据集”页的 PMID/GEO 链接） · '
-          '作者/联系方式：[待填]</div>')
+DISCLAIMER = f'<div class="disc" {dk("disc")}>{en_of("disc")}</div>'
+FOOTER = (f'<div class="footer">{WORKING_NAME} <span {dk("foot_working")}>{en_of("foot_working")}</span> '
+          f'· {VERSION} · <span {dk("foot_build")}>{en_of("foot_build")}</span> {BUILD_DATE} · '
+          f'<span {dk("foot_src")}>{en_of("foot_src")}</span> · '
+          f'<span {dk("foot_auth")}>{en_of("foot_auth")}</span></div>')
 
-def page(title, body):
-    return f"""<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title} — {WORKING_NAME}</title><link rel="stylesheet" href="style.css"></head>
-<body>{NAV}<h1>{WORKING_NAME}</h1><h2>{title}</h2>{body}{FOOTER}</body></html>"""
+I18N_SCRIPT = """<script>
+window.PA_I18N = __I18N_JSON__;
+function pa_setLang(l){
+  if(l!=='en'&&l!=='zh') l='en';
+  try{ localStorage.setItem('pa_lang', l); }catch(e){}
+  document.documentElement.lang = (l==='zh' ? 'zh-CN' : 'en');
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var d = window.PA_I18N[el.getAttribute('data-i18n')];
+    if(d && d[l]!==undefined) el.innerHTML = d[l];
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(function(el){
+    var d = window.PA_I18N[el.getAttribute('data-i18n-ph')];
+    if(d && d[l]!==undefined) el.setAttribute('placeholder', d[l]);
+  });
+  document.querySelectorAll('.lang-toggle a').forEach(function(a){
+    a.classList.toggle('active', a.getAttribute('data-lang')===l);
+  });
+  if(window.PA_langChanged) window.PA_langChanged(l);
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var l = 'en';
+  try{ l = localStorage.getItem('pa_lang') || 'en'; }catch(e){}
+  pa_setLang(l);
+});
+</script>"""
+
+def page(title_key, body):
+    return (f'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">\n'
+            f'<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+            f'<title>{en_of(title_key)} \u2014 {WORKING_NAME}</title>'
+            f'<link rel="stylesheet" href="style.css"></head>\n'
+            f'<body>{NAV}<h1>{WORKING_NAME}</h1>'
+            f'<h2 {dk(title_key)}>{en_of(title_key)}</h2>{body}{FOOTER}'
+            f'{I18N_SCRIPT.replace("__I18N_JSON__", i18n_json())}</body></html>')
 
 def build_index():
     h = HEADLINE
     stats = "".join(
-        f'<div class="stat"><b>{v}</b>{k}</div>'
+        f'<div class="stat"><b>{v}</b><span {dk(k)}>{en_of(k)}</span></div>'
         for k, v in [
-            ("策展 GSE 系列", h["series_curated"]),
-            ("核心集", h["series_core"]),
-            ("普查样本总数", h["samples_curated"]),
-            ("bulk 差异队列", h["bulk_cohorts"]),
-            ("bulk 基因×队列证据", f'{h["bulk_genes"]}×{h["bulk_cohorts"]}'),
-            ("单细胞数据集", h["sc_datasets"]),
-            ("单细胞（细胞数）", h["sc_cells"]),
-            ("单细胞供体单元", h["sc_donors"]),
-            ("空间 ROI", h["spatial_roi"]),
-            ("空间 panel 基因", h["spatial_genes"]),
-            ("自带内型标签系列", h["endotype_series"]),
+            ("stat_series_curated", h["series_curated"]),
+            ("stat_core", h["series_core"]),
+            ("stat_samples", h["samples_curated"]),
+            ("stat_bulk_cohorts", h["bulk_cohorts"]),
+            ("stat_bulk_ev", f'{h["bulk_genes"]}×{h["bulk_cohorts"]}'),
+            ("stat_sc_ds", h["sc_datasets"]),
+            ("stat_sc_cells", h["sc_cells"]),
+            ("stat_sc_donors", h["sc_donors"]),
+            ("stat_sp_roi", h["spatial_roi"]),
+            ("stat_sp_genes", h["spatial_genes"]),
+            ("stat_endotype", h["endotype_series"]),
         ])
     body = (DISCLAIMER
-        + f'<p>本资源对 GEO 全部 {h["series_curated"]} 个慢性鼻窦炎/鼻息肉人类数据集逐个策展（核心集 {h["series_core"]}），'
-          '对合格的 bulk 队列逐个统一重跑差异分析、对单细胞数据集统一注释到一套细胞类型词表、'
-          '对 GeoMx 空间数据按区室整理，与 bulk/单细胞三方对齐。所有结果均可在线查询与下载。</p>'
+        + f'<p {dk("idx_intro")}>{en_of("idx_intro")}</p>'
         + stats
-        + '<h3>三层证据</h3><ul>'
-        '<li><b>Bulk</b>：16 个队列逐队列差异分析（30 个对比），19,266 蛋白编码基因×队列证据矩阵。跨平台不合并表达矩阵，只在结果层汇总（方向/效应量/显著性）。</li>'
-        '<li><b>单细胞</b>：10 个数据集统一注释（25 类细胞词表），476,254 细胞、105 供体单元；差异统计以供体为单位（pseudobulk），17,631 基因×41 对比。</li>'
-        '<li><b>空间</b>：GSE235714 GeoMx 40 ROI（CD45+ 免疫 / PanCK+ 上皮区室），1,480 基因 CTA panel——<b>供体级差异分析两区室 FDR&lt;0.05 均为 0</b>，空间层定位为区室定位/展示层，不作为独立证据层；只展示描述性值，见区室 logFC 与混杂声明。</li></ul>'
-        '<h3>快速开始</h3><p>查一个基因（如 CLC、IL33）：<a href="gene.html"><b>基因查询页 →</b></a>；'
-        '浏览全部数据集与已知限制：<a href="cohorts.html"><b>队列与数据集 →</b></a>；'
-        '批量取数：<a href="downloads.html"><b>数据下载 →</b></a>。</p>'
-        + '<div class="caveat"><b>诚实声明（使用前请读）</b>：各队列的设计差异很大——组织混杂（GSE198950）、无健康对照（GSE189690、GSE330761）、'
-          '原代培养弱信号（GSE69093）、扁桃体对照（GSE270953）、AERD 单臂（GSE196169）等。每个队列的限制标注在其数据旁，“队列与数据集”页有全表。</div>')
-    return page("首页", body)
+        + f'<h3 {dk("idx_layers_h")}>{en_of("idx_layers_h")}</h3><ul>'
+        + f'<li {dk("idx_bulk")}>{en_of("idx_bulk")}</li>'
+        + f'<li {dk("idx_sc")}>{en_of("idx_sc")}</li>'
+        + f'<li {dk("idx_sp")}>{en_of("idx_sp")}</li></ul>'
+        + f'<h3 {dk("idx_start_h")}>{en_of("idx_start_h")}</h3><p {dk("idx_start")}>{en_of("idx_start")}</p>'
+        + f'<div class="caveat" {dk("idx_honest")}>{en_of("idx_honest")}</div>')
+    return page("title_home", body)
 
 def build_gene():
     quick = " ".join(f'<button onclick="searchGene(\'{g}\')">{g}</button>' for g in QUICK_GENES)
     body = (DISCLAIMER
-        + '<div class="card"><input type="text" id="q" placeholder="输入基因符号，如 CLC" onkeydown="if(event.key===\'Enter\')searchGene()">'
-          ' <button onclick="searchGene()">查询</button></div>'
-        + f'<p>常用基因：{quick}</p><div id="result"></div>'
+        + f'<div class="card"><input type="text" id="q" data-i18n-ph="gene_ph" placeholder="{en_of("gene_ph")}" onkeydown="if(event.key===\'Enter\')searchGene()">'
+          f' <button onclick="searchGene()" {dk("gene_go")}>{en_of("gene_go")}</button></div>'
+        + f'<p><span {dk("gene_quick")}>{en_of("gene_quick")}</span> {quick}</p><div id="result"></div>'
         + '<script src="data.js"></script>\n<script src="gene_app.js"></script>')
-    return page("基因查询", body)
+    return page("title_gene", body)
 
 def build_cohorts():
     rows = []
     for c in BULK_COHORTS:
-        tag = f'<div class="caveat"><b>⚠ 限制：</b>{c["caveat"]}</div>' if c.get("caveat") else ""
-        note = f'<br><span style="font-size:13px;color:#555">{c.get("note","")}</span>' if c.get("note") else ""
+        tag = (f'<div class="caveat" {dk("cav_" + c["id"])}>{en_of("cav_" + c["id"])}</div>'
+               if c.get("caveat") else "")
+        note = (f'<br><span style="font-size:13px;color:#555" {dk("note_" + c["id"])}>{en_of("note_" + c["id"])}</span>'
+                if c.get("note") else "")
         rows.append(f'<tr><td><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={c["id"].split("_")[0]}">{c["id"]}</a></td>'
-                    f'<td>{c["n"]}</td><td>{c["method"]}</td><td>{c["sig"]}</td>'
+                    f'<td {dk("n_" + c["id"])}>{c["n_en"]}</td><td>{c["method"]}</td><td>{c["sig"]}</td>'
                     f'<td>{note}{tag}</td></tr>')
-    bulk_tbl = ("<h3>Bulk 差异分析队列（16）</h3>"
-                '<table><tr><th>系列</th><th>主对比（case vs control）</th><th>方法</th><th>FDR&lt;0.05 基因数</th><th>备注 / 限制</th></tr>'
+    bulk_tbl = (f'<h3 {dk("co_bulk_h")}>{en_of("co_bulk_h")}</h3>'
+                f'<table><tr><th {dk("co_th_id")}>{en_of("co_th_id")}</th>'
+                f'<th {dk("co_th_contrast")}>{en_of("co_th_contrast")}</th>'
+                f'<th {dk("co_th_method")}>{en_of("co_th_method")}</th>'
+                f'<th {dk("co_th_sig")}>{en_of("co_th_sig")}</th>'
+                f'<th {dk("co_th_note")}>{en_of("co_th_note")}</th></tr>'
                 + "".join(rows) + "</table>")
     sc_rows = []
     for d in SC_DATASETS:
-        tag = f'<div class="caveat"><b>⚠ 限制：</b>{d["caveat"]}</div>' if d.get("caveat") else ""
-        note = f'<br><span style="font-size:13px;color:#555">{d.get("note","")}</span>' if d.get("note") else ""
+        tag = (f'<div class="caveat" {dk("sc_cav_" + d["id"])}>{en_of("sc_cav_" + d["id"])}</div>'
+               if d.get("caveat") else "")
+        note = (f'<br><span style="font-size:13px;color:#555" {dk("sc_note_" + d["id"])}>{en_of("sc_note_" + d["id"])}</span>'
+                if d.get("note") else "")
+        donors_td = (f'<td {dk("sc_donors_" + d["id"])}>{d["donors_en"]}</td>' if "donors_en" in d
+                     else f'<td>{d["donors"]}</td>')
         sc_rows.append(f'<tr><td><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={d["id"]}">{d["id"]}</a></td>'
-                       f'<td>{d["cells"]}</td><td>{d["donors"]}</td><td>{d["design"]}</td>'
+                       f'<td>{d["cells"]}</td>'
+                       + donors_td +
+                       f'<td {dk("sc_design_" + d["id"])}>{d["design_en"]}</td>'
                        f'<td>{note}{tag}</td></tr>')
-    sc_tbl = ("<h3>单细胞统一注释数据集（10）</h3><p>共 476,254 细胞、105 供体单元；注释到统一 25 类细胞词表；差异统计以供体为单位（pseudobulk）。</p>"
-              '<table><tr><th>系列</th><th>细胞数</th><th>供体</th><th>设计</th><th>备注 / 限制</th></tr>'
+    sc_tbl = (f'<h3 {dk("co_sc_h")}>{en_of("co_sc_h")}</h3>'
+              f'<p {dk("co_sc_intro")}>{en_of("co_sc_intro")}</p>'
+              f'<table><tr><th {dk("co_th_id")}>{en_of("co_th_id")}</th>'
+              f'<th {dk("co_th_cells")}>{en_of("co_th_cells")}</th>'
+              f'<th {dk("co_th_donors")}>{en_of("co_th_donors")}</th>'
+              f'<th {dk("co_th_design")}>{en_of("co_th_design")}</th>'
+              f'<th {dk("co_th_note")}>{en_of("co_th_note")}</th></tr>'
               + "".join(sc_rows) + "</table>")
     sp = SPATIAL_INFO
-    sp_sec = ("<h3>空间数据集（1）</h3>"
-              f'<p><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={sp["id"]}">{sp["id"]}</a> GeoMx DSP：'
-              f'{sp["roi"]} ROI × {sp["donors"]} 供体；panel {sp["panel"]}。</p>'
-              + "".join(f'<div class="caveat"><b>⚠ 空间层限制：</b>{c}</div>' for c in sp["caveats"]))
-    other = ("<h3>其他</h3><ul>"
-             "<li>待核集 11 个系列：每个都有具名待核项，未达到 core 标准，不进入查询（详见策展报告）。</li>"
-             "<li>剔除 25 个系列：superseries 父记录、健康体外模型、邻近疾病（过敏性鼻炎/哮喘）、非表达组学等，逐条原因见策展表。</li>"
-             "<li>3 个 ncRNA 阵列核心系列（GSE169375/GSE169376/GSE32300）：分子类型不同，本轮未进入 bulk DE；结果文件另行提供。</li></ul>")
+    sp_sec = (f'<h3 {dk("co_sp_h")}>{en_of("co_sp_h")}</h3>'
+              f'<p><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={sp["id"]}">{sp["id"]}</a> '
+              f'<span {dk("co_sp_intro")}>{en_of("co_sp_intro")}</span></p>'
+              + "".join(f'<div class="caveat" {dk(f"sp_cav_{i}")}>{en_of(f"sp_cav_{i}")}</div>'
+                        for i in range(len(sp["caveats"]))))
+    other = (f'<h3 {dk("co_other_h")}>{en_of("co_other_h")}</h3><ul>'
+             + "".join(f'<li {dk(f"co_o{i}")}>{en_of(f"co_o{i}")}</li>' for i in (1, 2, 3))
+             + "</ul>")
     body = DISCLAIMER + bulk_tbl + sc_tbl + sp_sec + other
-    return page("队列与数据集", body)
+    return page("title_cohorts", body)
 
 def build_downloads():
     items = [
-        ("evidence_matrix_logFC.csv", "Bulk：19,266 蛋白编码基因 × 16 队列 logFC（主对比；探针按 min-p 塌缩）。"),
-        ("evidence_matrix_FDR.csv", "Bulk：同上矩阵的 BH-FDR。"),
-        ("de_tables.zip", "Bulk：30 个对比的逐队列全量差异结果（symbol, logFC, p, FDR）。"),
-        ("runlog.csv", "Bulk：30 个对比的 n、尺度裁决、方法、状态记录。"),
-        ("controls_panel.csv", "Bulk：8 基因阳性对照 panel（CLC/CCL26/CCL13/IL33/TSLP/POSTN/SERPINB2/ALOX15）逐队列数值。"),
-        ("celltype_evidence_matrix.csv", "单细胞：17,631 基因 × 41 个细胞类型级 pseudobulk 对比（logFC+FDR）。"),
-        ("composition_all.csv", "单细胞：1,431 行 dataset×donor×group×celltype×fraction 组成表。"),
-        ("alignment_table.csv", "空间：1,480 panel 基因 × 39 列（空间两区室 + 16 bulk 队列 + 同研究单细胞平均）。"),
-        ("roi_metadata.csv", "空间：40 ROI 元数据（含 QC 标记 GSM7508390）。"),
-        ("curation_table.csv", "策展总表：66 个系列逐个定性（verdict/证据注记）。"),
+        ("evidence_matrix_logFC.csv", "dl_evlfc"),
+        ("evidence_matrix_FDR.csv", "dl_evfdr"),
+        ("de_tables.zip", "dl_dezip"),
+        ("runlog.csv", "dl_runlog"),
+        ("controls_panel.csv", "dl_panel"),
+        ("celltype_evidence_matrix.csv", "dl_scev"),
+        ("composition_all.csv", "dl_comp"),
+        ("alignment_table.csv", "dl_align"),
+        ("roi_metadata.csv", "dl_roi"),
+        ("curation_table.csv", "dl_cur"),
     ]
-    lis = "".join(f'<li><a href="data/{f}">{f}</a> —— {d}</li>' for f, d in items)
+    lis = "".join(f'<li><a href="data/{f}">{f}</a> — <span {dk(k)}>{en_of(k)}</span></li>' for f, k in items)
     body = (DISCLAIMER + "<ul>" + lis + "</ul>"
-            + '<div class="caveat"><b>使用说明</b>：所有文件均为统一再分析产出；每个文件的生成口径见“方法与限制”页；'
-              '已注释的 h5ad 对象体积大，未放上本站（可联系作者获取）。</div>')
-    return page("数据下载", body)
+            + f'<div class="caveat" {dk("dl_usage")}>{en_of("dl_usage")}</div>')
+    return page("title_downloads", body)
 
 def build_methods():
+    lis = "".join(f'<li {dk(f"m_f{i}")}>{en_of(f"m_f{i}")}</li>' for i in range(1, 6))
+    lims = "".join(f'<li {dk(f"m_l{i}")}>{en_of(f"m_l{i}")}</li>' for i in range(1, 8))
     body = (DISCLAIMER
-        + "<h3>流程</h3><ol>"
-        "<li><b>普查与策展</b>：GEO 人类 CRS/鼻息肉查询 66 系列逐个验明（组织/分组/平台/样本量），定级 core/pending/excluded，逐条有证据注记；内型标签只认 deposited metadata，不推测。</li>"
-        "<li><b>Bulk 统一重分析</b>：逐队列独立差异分析（counts→DESeq2；连续值→limma；配对→配对模型），先做尺度三方核查；探针按 min-p 塌缩到 symbol；跨平台只在结果层汇总，不合并表达矩阵。</li>"
-        "<li><b>单细胞统一注释</b>：leiden 聚类 + 规范 marker 打分到统一 25 类词表（全基因矩阵打分，非 HVG 子集）；出结果前先过阳性对照断言（管家/上皮/免疫标志）；差异统计以供体为单位（pseudobulk）。</li>"
-        "<li><b>空间</b>：GeoMx 按区室整理；6v4 供体下 FDR 全为 0，故空间层只作区室定位/展示层，不做独立证据；展示描述性值并固定标注低功效与组织混杂。</li>"
-        "<li><b>网站</b>：预计算结果做成静态查看器；每处数据的已知限制标注在数据旁。</li></ol>"
-        "<h3>已知限制（全文）</h3><ul>"
-        "<li>内型（嗜酸/非嗜酸）标签只有 6 个系列自带 deposited metadata，且多为小样本——本站不做组织嗜酸计数的预测，只做程序/基因层面的证据展示。</li>"
-        "<li>6 个 bulk 队列 n≤7/组或功效低（GSE72713、GSE150846、GSE174681、GSE330761、GSE36830、GSE194282），证据矩阵中权重应下调。</li>"
-        "<li>GSE198950 组织混杂、GSE69093 真实弱信号、GSE189690/GSE330761 无健康对照——跨队列比较时需分层看，不可直接合并。</li>"
-        "<li>GSE158277（配对 N-ERD，n=20）GEO 只有结果表无表达矩阵，未能重分析；若获原始数据可补入。</li>"
-        "<li>单细胞：分选制剂（GSE179292/GSE324445/GSE270953/GSE255544 等）组成不代表整组织；GSE324445 名义分选与实测组成不符；GSE270953 对照为扁桃体；GSE276503 对照仅 2 例。</li>"
-        "<li>空间：见“队列与数据集”页的四条空间层限制。</li>"
-        "<li>公开数据二次分析：原始研究的伦理批准由各原始研究承担；本站不收集任何新样本与个人信息。</li></ul>"
-        "<h3>数据来源</h3><p>全部来自 GEO 公开系列（各系列 PMID 与 GEO 链接见“队列与数据集”页）；"
-        "策展报告、重分析报告与本网站构建脚本随代码仓库公开，全部数字可复现。</p>"
-        "<h3>作者与联系</h3><p>作者：[待填] · 通讯：[待填] · 引用本资源：[待填]</p>")
-    return page("方法与限制", body)
+        + f'<h3 {dk("m_flow_h")}>{en_of("m_flow_h")}</h3><ol>' + lis + "</ol>"
+        + f'<h3 {dk("m_lim_h")}>{en_of("m_lim_h")}</h3><ul>' + lims + "</ul>"
+        + f'<h3 {dk("m_src_h")}>{en_of("m_src_h")}</h3><p {dk("m_src")}>{en_of("m_src")}</p>'
+        + f'<h3 {dk("m_auth_h")}>{en_of("m_auth_h")}</h3><p {dk("m_auth")}>{en_of("m_auth")}</p>')
+    return page("title_methods", body)
 
-GENE_APP_JS = r"""
+# ---- gene_app.js: JS-side strings are keys into the same embedded dictionary ----
+# JS needs its own literals (no JSON fetch), so build a JS object from the g_* keys.
+def gene_js_strings():
+    keys = ["g_empty", "g_notfound", "g_suggest", "g_nosim", "g_bulk_t", "g_th_cohort",
+            "g_th_contrast", "g_th_comp", "g_th_desc", "g_limit_badge", "g_bulk_chart",
+            "g_sc_t", "g_bulk_nm", "g_sc_nm", "g_sp_t", "g_cd45", "g_panck",
+            "g_sp_cav", "g_notpanel", "g_lim_colon"]
+    obj = {k: {"en": en_of(k), "zh": zh_of(k)} for k in keys}
+    # caveat full blocks keyed cav_<id> for the dynamic gene page
+    cav = {k: {"en": en_of(k), "zh": zh_of(k)} for k in _STRINGS
+           if k.startswith("cav_")}
+    return json.dumps(obj, ensure_ascii=False, separators=(",", ":")), json.dumps(cav, ensure_ascii=False, separators=(",", ":"))
+
+GENE_APP_JS_TEMPLATE = r"""
 const BULK = DATA.coho, SCN = DATA.scl, GENES = DATA.genes;
+const GS = __GS_JSON__, CAV = __CAV_JSON__;
+function pa_lang(){ try{ return localStorage.getItem('pa_lang') || 'en'; }catch(e){ return 'en'; } }
+function gs(k){ const l = pa_lang(); return (GS[l] && GS[l][k]!==undefined) ? GS[l][k] : GS.en[k]; }
+function cavtxt(id){ const l = pa_lang(); const d = CAV['cav_'+id]; return d ? d[l] : ''; }
 function fmt(v, d){ if(v==null) return '<span style="color:#aaa">—</span>'; return Number(v).toFixed(d); }
 function badge(f){ if(f==null) return ''; if(f<0.05) return '<span class="badge sig">FDR<0.05</span>'; return '<span class="badge nonsig">ns</span>'; }
 function searchGene(g0){
   let q = (g0 || document.getElementById('q').value || '').trim().toUpperCase();
   const box = document.getElementById('result');
-  if(!q){ box.innerHTML = '<p>请输入基因符号。</p>'; return; }
+  if(!q){ box.innerHTML = '<p>'+gs('g_empty')+'</p>'; window._lastGene = null; return; }
   let key = Object.keys(GENES).find(k => k.toUpperCase() === q);
   if(!key){ // prefix suggestions
     let cand = Object.keys(GENES).filter(k => k.toUpperCase().startsWith(q)).slice(0,20);
-    box.innerHTML = '<p>未找到 <b>'+q+'</b>。' + (cand.length? '可能：'+cand.map(c=>`<a href="#" onclick="searchGene('${c}');return false;">${c}</a>`).join('、') : '无相似符号。') + '</p>';
-    return;
+    box.innerHTML = '<p>'+gs('g_notfound')+' <b>'+q+'</b>.' + (cand.length? ' '+gs('g_suggest')+' '+cand.map(c=>`<a href="#" onclick="searchGene('${c}');return false;">${c}</a>`).join('、') : ' '+gs('g_nosim')) + '</p>';
+    window._lastGene = null; return;
   }
+  window._lastGene = key;
   document.getElementById('q').value = key;
   const r = GENES[key];
   let html = '<div class="card"><h3>'+key+'</h3>';
   // bulk table + chart
-  html += '<h3>Bulk：16 队列（主对比）</h3><table><tr><th>队列</th><th>logFC</th><th>FDR</th><th></th></tr>';
+  html += '<h3>'+gs('g_bulk_t')+'</h3><table><tr><th>'+gs('g_th_cohort')+'</th><th>logFC</th><th>FDR</th><th></th></tr>';
   const vals = [];
   if(r.b){
     BULK.forEach((c,i)=>{
       const e = r.b[i]; vals.push(e?e[0]:null);
-      html += '<tr><td>'+c.id+'<br><span style="font-size:12px;color:#666">'+c.n+'</span>'
-        + (c.caveat? '<br><span class="badge warn">⚠ 限制见下</span>' : '') + '</td>'
+      const ntxt = c['n_'+pa_lang()] || c.n_en || c.n_zh;
+      html += '<tr><td>'+c.id+'<br><span style="font-size:12px;color:#666">'+ntxt+'</span>'
+        + (c.caveat? '<br><span class="badge warn">'+gs('g_limit_badge')+'</span>' : '') + '</td>'
         + '<td>'+fmt(e?e[0]:null,3)+'</td><td>'+fmt(e?e[1]:null,4)+'</td><td>'+badge(e?e[1]:null)+'</td></tr>';
     });
-  } else html += '<tr><td colspan="4">该基因不在 bulk 证据矩阵中（未测得）。</td></tr>';
+  } else html += '<tr><td colspan="4">'+gs('g_bulk_nm')+'</td></tr>';
   html += '</table>';
   const caveats = BULK.filter(c=>c.caveat && r.b && BULK.indexOf(c)<r.b.length && r.b[BULK.indexOf(c)]);
-  const shown = [...new Set(caveats.map(c=>'<div class="caveat"><b>⚠ '+c.id+' 限制：</b>'+c.caveat+'</div>'))];
+  const shown = [...new Set(caveats.map(c=>'<div class="caveat">'+cavtxt(c.id)+'</div>'))];
   if(shown.length) html += shown.join('');
-  html += '<h3>Bulk logFC 条形图</h3><canvas id="cv" width="900" height="340"></canvas></div>';
+  html += '<h3>'+gs('g_bulk_chart')+'</h3><canvas id="cv" width="900" height="340"></canvas></div>';
   // sc table
-  html += '<div class="card"><h3>单细胞：细胞类型级对比</h3>';
+  html += '<div class="card"><h3>'+gs('g_sc_t')+'</h3>';
   if(r.s){
-    html += '<table><tr><th>对比（数据集 · 细胞类型 · 设计）</th><th>logFC</th><th>FDR</th><th></th></tr>';
+    html += '<table><tr><th>'+gs('g_th_contrast')+'</th><th>logFC</th><th>FDR</th><th></th></tr>';
     Object.keys(r.s).forEach(i=>{
       const e = r.s[i];
       html += '<tr><td>'+SCN[+i]+'</td><td>'+fmt(e[0],3)+'</td><td>'+fmt(e[1],4)+'</td><td>'+badge(e[1])+'</td></tr>';
     });
     html += '</table>';
-  } else html += '<p>该基因不在单细胞证据矩阵中（未测得）。</p>';
+  } else html += '<p>'+gs('g_sc_nm')+'</p>';
   html += '</div>';
   // spatial
-  html += '<div class="card"><h3>空间（GeoMx，GSE235714）</h3>';
+  html += '<div class="card"><h3>'+gs('g_sp_t')+'</h3>';
   if(r.sp){
-    html += '<table><tr><th>区室</th><th>logFC（供体级描述值）</th><th>FDR</th></tr>'
-      + '<tr><td>CD45+ 免疫区室</td><td>'+fmt(r.sp[0],3)+'</td><td>'+fmt(r.sp[1],4)+'</td></tr>'
-      + '<tr><td>PanCK+ 上皮区室</td><td>'+fmt(r.sp[2],3)+'</td><td>'+fmt(r.sp[3],4)+'</td></tr></table>'
-      + '<div class="caveat"><b>⚠ 空间层限制：</b>两区室供体级 FDR&lt;0.05 均为 0（6v4 供体），此为描述性值，非独立证据；'
-      + '且疾病与组织完全混杂（CRSwNP=息肉组织 vs 对照=筛窦组织）。</div>';
-  } else html += '<p>该基因<b>不在 GeoMx CTA panel（1,480 基因）中</b>——无空间数据，非缺失值。</p>';
+    html += '<table><tr><th>'+gs('g_th_comp')+'</th><th>'+gs('g_th_desc')+'</th><th>FDR</th></tr>'
+      + '<tr><td>'+gs('g_cd45')+'</td><td>'+fmt(r.sp[0],3)+'</td><td>'+fmt(r.sp[1],4)+'</td></tr>'
+      + '<tr><td>'+gs('g_panck')+'</td><td>'+fmt(r.sp[2],3)+'</td><td>'+fmt(r.sp[3],4)+'</td></tr></table>'
+      + '<div class="caveat">'+gs('g_sp_cav')+'</div>';
+  } else html += '<p>'+gs('g_notpanel')+'</p>';
   html += '</div>';
   box.innerHTML = html;
   drawChart(vals);
@@ -422,7 +845,12 @@ function drawChart(vals){
   });
 }
 document.getElementById('q').addEventListener('keydown', e=>{ if(e.key==='Enter') searchGene(); });
+// re-render results when the page language changes (wired from the inline i18n script)
+window.PA_langChanged = function(){ if(window._lastGene) searchGene(window._lastGene); };
 """
+
+def zh_of(key):
+    return _STRINGS[key][1]
 
 # ---------------- main ----------------------------------------------------
 def main():
@@ -435,7 +863,8 @@ def main():
 
     data_js = {
         "version": VERSION, "build_date": BUILD_DATE,
-        "coho": [{"id": c["id"], "n": c["n"], "caveat": bool(c.get("caveat"))} for c in BULK_COHORTS],
+        "coho": [{"id": c["id"], "n_en": c["n_en"], "n_zh": c["n"],
+                  "caveat": bool(c.get("caveat"))} for c in BULK_COHORTS],
         "scl": sc_labels, "genes": genes,
     }
     js_text = "const DATA = " + json.dumps(data_js, separators=(",", ":"), ensure_ascii=False) + ";"
@@ -445,8 +874,12 @@ def main():
 
     with open(os.path.join(SITE, "style.css"), "w", encoding="utf-8") as fh:
         fh.write(CSS)
+    gs_json, cav_json = gene_js_strings()
+    gene_app = (GENE_APP_JS_TEMPLATE
+                .replace("__GS_JSON__", gs_json)
+                .replace("__CAV_JSON__", cav_json))
     with open(os.path.join(SITE, "gene_app.js"), "w", encoding="utf-8") as fh:
-        fh.write(GENE_APP_JS)
+        fh.write(gene_app)
 
     with open(os.path.join(SITE, "index.html"), "w", encoding="utf-8") as fh:
         fh.write(build_index())
@@ -485,6 +918,7 @@ def main():
 
     total = sum(os.path.getsize(os.path.join(dp, f)) for dp, _, fns in os.walk(SITE) for f in fns)
     print("site total bytes:", total)
+    print("i18n strings:", len(_STRINGS))
 
 if __name__ == "__main__":
     main()

@@ -6,6 +6,9 @@ h3{font-size:16px;margin-top:22px}
 nav{background:#1a6fb5;padding:10px 18px;border-radius:8px;margin-bottom:18px}
 nav a{color:#fff;margin-right:22px;text-decoration:none;font-weight:bold}
 nav a:hover{text-decoration:underline}
+.lang-toggle{float:right;font-weight:bold}
+.lang-toggle a{margin:0 4px;opacity:.6}
+.lang-toggle a.active{opacity:1;text-decoration:underline}
 .card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:14px 0}
 .stat{display:inline-block;background:#e8f1fa;border-radius:8px;padding:12px 18px;margin:6px 10px 6px 0;text-align:center}
 .stat b{font-size:24px;display:block;color:#1a6fb5}
