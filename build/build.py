@@ -1041,7 +1041,7 @@ GENE_APP_JS_TEMPLATE = r"""
 const BULK = DATA.coho, SCN = DATA.scl, GENES = DATA.genes;
 const GS = __GS_JSON__, CAV = __CAV_JSON__;
 function pa_lang(){ try{ return localStorage.getItem('pa_lang') || 'en'; }catch(e){ return 'en'; } }
-function gs(k){ const l = pa_lang(); return (GS[l] && GS[l][k]!==undefined) ? GS[l][k] : GS.en[k]; }
+function gs(k){ const l = pa_lang(); const d = GS[k]; return d ? (d[l]!==undefined ? d[l] : d.en) : k; }
 function cavtxt(id){ const l = pa_lang(); const d = CAV['cav_'+id]; return d ? d[l] : ''; }
 function fmt(v, d){ if(v==null) return '<span style="color:#aaa">—</span>'; return Number(v).toFixed(d); }
 function badge(f){ if(f==null) return ''; if(f<0.05) return '<span class="badge sig">FDR<0.05</span>'; return '<span class="badge nonsig">ns</span>'; }
