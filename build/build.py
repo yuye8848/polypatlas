@@ -17,13 +17,13 @@ i18n: full EN/ZH bilingual support, default EN.
     PA_langChanged to re-render results on language switch.
   - WORKING_NAME stays effective in both languages (renaming still a one-line change).
 """
-import csv, json, os, shutil, re
+import csv, json, os, shutil, re, html as _html
 from datetime import date
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(os.path.dirname(BASE))  # ~/workspace/sci-crswnp-resource
 SITE = os.path.join(PROJ, "web", "site")
-VERSION = "v1.1"
+VERSION = "v1.2"
 BUILD_DATE = date.today().isoformat()
 
 # ================= i18n string registry: key -> (en, zh) =================
@@ -43,11 +43,13 @@ _def("nav_home", "Home", "首页")
 _def("nav_gene", "Gene query", "基因查询")
 _def("nav_cohorts", "Cohorts &amp; datasets", "队列与数据集")
 _def("nav_downloads", "Data downloads", "数据下载")
+_def("nav_pathways", "Pathway query", "通路查询")
 _def("nav_methods", "Methods &amp; limitations", "方法与限制")
 _def("title_home", "Home", "首页")
 _def("title_gene", "Gene query", "基因查询")
 _def("title_cohorts", "Cohorts &amp; datasets", "队列与数据集")
 _def("title_downloads", "Data downloads", "数据下载")
+_def("title_pathways", "Pathway query", "通路查询")
 _def("title_methods", "Methods &amp; limitations", "方法与限制")
 _def("disc",
      "<b>Research use only</b>: This site is an integrated query resource for publicly "
@@ -197,6 +199,36 @@ _dl = [
     ("dl_cur",
      "Master curation table: per-series grading of all 66 series (verdict / evidence notes).",
      "策展总表：66 个系列逐个定性（verdict/证据注记）。"),
+    ("dl8_ora",
+     "Analysis layer: over-representation enrichment for all contrasts (GO BP/CC/MF, Reactome, KEGG; up/down separately; low-DE directions skipped).",
+     "分析层：全部对比的过表征富集（GO BP/CC/MF、Reactome、KEGG；上下调分开；DE 不足的方向已跳过）。"),
+    ("dl8_gsea",
+     "Analysis layer: GSEA for 62 adequately powered contrasts (Hallmark, GO-BP, Reactome, KEGG; 40 MB).",
+     "分析层：62 个有功效对比的 GSEA（Hallmark、GO-BP、Reactome、KEGG；40 MB）。"),
+    ("dl8_psc",
+     "Analysis layer: per-sample ssGSEA program scores (13 programs \u00d7 16 bulk cohorts).",
+     "分析层：样本级 ssGSEA 程序打分（13 程序 × 16 bulk 队列）。"),
+    ("dl8_psm",
+     "Analysis layer: per-cohort program case-vs-control summary.",
+     "分析层：逐队列程序病例-对照汇总。"),
+    ("dl8_dsc",
+     "Analysis layer: per-sample immune abundance estimates (MCP-counter-style marker scoring).",
+     "分析层：样本级免疫丰度估计（MCP-counter-style marker 打分）。"),
+    ("dl8_dsm",
+     "Analysis layer: per-cohort deconvolution group summary.",
+     "分析层：逐队列去卷积分组汇总。"),
+    ("dl8_can",
+     "Consensus genes (disease-only, 825 up / 196 down) with known approved-drug target annotation.",
+     "共识基因（disease-only，825 上 / 196 下）附已获批药物靶点标注。"),
+    ("dl8_cen",
+     "Consensus genes: pathway enrichment of the up/down lists.",
+     "共识基因：上下调清单的通路富集。"),
+    ("dl8_lr1",
+     "Cell\u2013cell communication (CellChat, GSE235711): CRSwNP vs control interaction comparison.",
+     "细胞间通讯（CellChat，GSE235711）：CRSwNP vs 对照互作比较。"),
+    ("dl8_lr2",
+     "Cell\u2013cell communication (CellChat, GSE235711): CRSsNP vs control interaction comparison.",
+     "细胞间通讯（CellChat，GSE235711）：CRSsNP vs 对照互作比较。"),
 ]
 for _k, _e, _z in _dl:
     _def(_k, _e, _z)
@@ -206,6 +238,52 @@ _def("dl_usage",
      "to host here (available from the authors on request).",
      "<b>使用说明</b>：所有文件均为统一再分析产出；每个文件的生成口径见“方法与限制”页；"
      "已注释的 h5ad 对象体积大，未放上本站（可联系作者获取）。")
+
+# --- pathways page ---
+_def("path_ph", "Search a pathway term, e.g. interleukin-4", "搜索通路名称，如 interleukin-4")
+_def("path_go", "Search", "查询")
+_def("path_intro",
+     "Search pathway terms enriched (FDR&lt;0.05) across the analysis layer: "
+     "over-representation analysis and GSEA for all 71 bulk and single-cell contrasts. "
+     "Each hit shows where it was enriched (cohort / cell type) and the effect size.",
+     "搜索分析层中富集（FDR&lt;0.05）的通路：全部 71 个 bulk 与单细胞对比的过表征分析与 GSEA。"
+     "每个命中显示其富集位置（队列/细胞类型）与效应量。")
+_def("path_note",
+     "Only terms with FDR&lt;0.05 are indexed (8,866 terms, 33,116 hits). "
+     "Pathway names are shown in English \u2014 they are database identifiers (GO / Reactome / KEGG / Hallmark).",
+     "仅收录 FDR&lt;0.05 的通路（8,866 条，33,116 条命中）。通路名为数据库标识符（GO/Reactome/KEGG/Hallmark），以英文显示。")
+_def("path_th_term", "Pathway term", "通路")
+_def("path_th_db", "Database / collection", "数据库/集合")
+_def("path_th_ev", "Enriched in", "富集所在")
+_def("path_th_stat", "Effect / FDR", "效应/FDR")
+_def("path_none", "No enriched term matches this query.", "无匹配的富集通路。")
+_def("path_more", "More results truncated; refine the query.", "结果过多已截断，请细化查询。")
+
+# --- cohort analysis blocks ---
+_def("an_h", "Analysis layer", "分析层")
+_def("an_enr", "Top enriched pathways (FDR&lt;0.05)", "富集通路 top（FDR&lt;0.05）")
+_def("an_enr_ns", "No pathway reached FDR&lt;0.05 in this cohort.", "本队列无通路达到 FDR&lt;0.05。")
+_def("an_prog", "Program scores: significant vs control (ssGSEA)", "程序打分：相对对照的显著变化（ssGSEA）")
+_def("an_prog_ns", "No program reached FDR&lt;0.05 in this cohort.", "本队列无程序达到 FDR&lt;0.05。")
+_def("an_prog_up", "up", "上调")
+_def("an_prog_down", "down", "下调")
+_def("an_deconv", "Immune cell abundance estimates", "免疫细胞丰度估计")
+_def("an_deconv_lab",
+     "MCP-counter-style marker scoring \u2014 abundance <b>estimates</b>, not cell counts "
+     "(not official MCPcounter output).",
+     "MCP-counter-style marker 打分——丰度<b>估计值</b>，不是细胞计数（非官方 MCPcounter 包输出）。")
+_def("an_deconv_ns", "No population reached FDR&lt;0.05.", "无群体达到 FDR&lt;0.05。")
+_def("an_det", "Full enrichment tables (downloads page)", "完整富集表（见下载页）")
+
+# --- gene page: pathways & consensus block ---
+_def("gpw_t", "Pathways &amp; consensus", "通路与共识")
+_def("gpw_path", "Pathways containing this gene, enriched (FDR&lt;0.05) in \u22652 contrasts", "含该基因且在 \u22652 个对比中富集（FDR&lt;0.05）的通路")
+_def("gpw_cons", "Consensus list", "共识基因清单")
+_def("gpw_cons_up", "consensus UP (one of 825 genes up-regulated across cohorts)", "共识上调（跨队列上调 825 基因之一）")
+_def("gpw_cons_down", "consensus DOWN (one of 196 genes down-regulated across cohorts)", "共识下调（跨队列下调 196 基因之一）")
+_def("gpw_cons_no", "Not in the consensus list.", "不在共识基因清单中。")
+_def("gpw_target", "Known drug target", "已知药物靶点")
+_def("gpw_ncol", "contrasts", "对比数")
 
 # --- methods page ---
 _def("m_flow_h", "Workflow", "流程")
@@ -237,6 +315,13 @@ _mf = [
      "<b>Website</b>: precomputed results rendered as a static viewer; known limitations of each dataset "
      "are annotated next to the data.",
      "<b>网站</b>：预计算结果做成静态查看器；每处数据的已知限制标注在数据旁。"),
+    ("m_f6",
+     "<b>Analysis layer</b>: pathway enrichment (over-representation on up/down genes separately + GSEA on "
+     "powered contrasts), per-sample ssGSEA program scores (13 immune/epithelial programs), MCP-counter-style "
+     "immune deconvolution (labeled abundance estimates), and CellChat ligand\u2013receptor analysis of the "
+     "flagship single-cell dataset.",
+     "<b>分析层</b>：通路富集（上下调分别过表征 + 有功效对比 GSEA）、样本级 ssGSEA 程序打分（13 个免疫/上皮程序）、"
+     "MCP-counter-style 免疫去卷积（明确标注为丰度估计）、旗舰单细胞数据集的 CellChat 配体\u2013受体分析。"),
 ]
 for _k, _e, _z in _mf:
     _def(_k, _e, _z)
@@ -271,6 +356,12 @@ _ml = [
      "Secondary analysis of public data: ethics approval for the original studies rests with those "
      "studies; this site collects no new samples or personal information.",
      "公开数据二次分析：原始研究的伦理批准由各原始研究承担；本站不收集任何新样本与个人信息。"),
+    ("m_l8",
+     "Analysis layer: deconvolution values are abundance <b>estimates</b> (marker scoring), not cell counts; "
+     "CellChat probabilities are small (~1e-6) and classical type-2 cytokine pairs fall below reliable "
+     "single-cell detection, so no cytokine-pair claims are made.",
+     "分析层：去卷积为丰度<b>估计值</b>（marker 打分），不是细胞计数；CellChat 概率很小（~1e-6），经典 2 型细胞因子"
+     "对低于单细胞可靠检测线，故不作细胞因子互作声称。"),
 ]
 for _k, _e, _z in _ml:
     _def(_k, _e, _z)
@@ -551,6 +642,88 @@ def build_gene_data():
         genes[g] = rec
     return genes, [sc_label(b) for b in contrasts], len(union)
 
+# ---------------- step8 analysis-layer loaders --------------------------------
+def _fdr_ok(x):
+    try:
+        return float(x) < 0.05
+    except (TypeError, ValueError):
+        return False
+
+def load_step8():
+    s8 = os.path.join(PROJ, "analysis", "step8_expansion")
+    ora = read_csv_dict(os.path.join(s8, "enrichment", "enrichment_ora.csv"))
+    gsea = read_csv_dict(os.path.join(s8, "enrichment", "enrichment_gsea.csv"))
+    psum = read_csv_dict(os.path.join(s8, "programs", "program_summary.csv"))
+    dsum = read_csv_dict(os.path.join(s8, "deconv", "deconv_summary.csv"))
+    cons = {}
+    for r in read_csv_dict(os.path.join(s8, "consensus_annotated.csv")):
+        g = (r.get("symbol") or r.get("gene") or "").strip().upper()
+        if g:
+            cons[g] = {"d": r.get("direction", ""), "t": r.get("known_target", "").strip()}
+    return ora, gsea, psum, dsum, cons
+
+def build_pathway_indices():
+    """pathways.js (full FDR<0.05 term index, loaded on pathways page only),
+    gene_pathways.js (trimmed gene->terms, loaded on gene page only),
+    gene_consensus.js (consensus membership + target, loaded on gene page only)."""
+    ora, gsea, psum, dsum, cons = load_step8()
+    terms = {}
+    for r in ora:
+        if not _fdr_ok(r["FDR"]):
+            continue
+        key = (r["database"], r["term_id"], r["term_name"])
+        terms.setdefault(key, []).append(
+            [r["contrast"], r["layer"], "ora_" + r["direction"], r["gene_ratio"], float(r["FDR"])])
+    for r in gsea:
+        if not _fdr_ok(r["FDR"]):
+            continue
+        key = (r["collection"], r["term_id"], r["term_name"])
+        terms.setdefault(key, []).append(
+            [r["contrast"], r["layer"], "gsea", float(r["NES"]), float(r["FDR"])])
+    pw = {tid: {"n": nm, "d": db, "h": sorted(v, key=lambda x: x[4])}
+          for (db, tid, nm), v in sorted(terms.items(), key=lambda kv: kv[0][2].lower())}
+    with open(os.path.join(SITE, "pathways.js"), "w", encoding="utf-8") as fh:
+        fh.write("const PATHWAYS = " + json.dumps(pw, ensure_ascii=False, separators=(",", ":")) + ";")
+    # gene -> terms (only terms enriched in >=2 contrasts, top 12 per gene)
+    from collections import Counter
+    tcnt = Counter()
+    for (db, tid, nm), v in terms.items():
+        tcnt[(db, tid, nm)] = len(set(h[0] for h in v))
+    keep = {k for k, c in tcnt.items() if c >= 2}
+    g2t = {}
+    for r in ora:
+        if not _fdr_ok(r["FDR"]):
+            continue
+        k = (r["database"], r["term_id"], r["term_name"])
+        if k not in keep:
+            continue
+        for g in r["genes"].split(";"):
+            g = g.strip().upper()
+            if g:
+                g2t.setdefault(g, []).append(k)
+    gpw = {}
+    for g, tl in g2t.items():
+        top = sorted(Counter(tl).items(), key=lambda x: -x[1])[:12]
+        gpw[g] = [[t[2], t[0], t[1], n] for t, n in top]  # [name, db, id, n_contrasts]
+    with open(os.path.join(SITE, "gene_pathways.js"), "w", encoding="utf-8") as fh:
+        fh.write("const GENEPW = " + json.dumps(gpw, ensure_ascii=False, separators=(",", ":")) + ";")
+    with open(os.path.join(SITE, "gene_consensus.js"), "w", encoding="utf-8") as fh:
+        fh.write("const CONS = " + json.dumps(cons, ensure_ascii=False, separators=(",", ":")) + ";")
+    print("pathway terms:", len(pw), "| genes w/ pathways:", len(gpw), "| consensus:", len(cons))
+
+def _top_enrichment(cid, ora, gsea, n=4):
+    """Top enriched terms for one cohort id: (up ORA, down ORA, top GSEA by |NES|)."""
+    up = sorted([r for r in ora if r["layer"] == "bulk" and r["contrast"].startswith(cid + "_")
+                 and r["direction"] == "up" and _fdr_ok(r["FDR"])],
+                key=lambda r: float(r["FDR"]))[:n]
+    dn = sorted([r for r in ora if r["layer"] == "bulk" and r["contrast"].startswith(cid + "_")
+                 and r["direction"] == "down" and _fdr_ok(r["FDR"])],
+                key=lambda r: float(r["FDR"]))[:n]
+    gs = sorted([r for r in gsea if r["layer"] == "bulk" and r["contrast"].startswith(cid + "_")
+                 and _fdr_ok(r["FDR"])],
+                key=lambda r: -abs(float(r["NES"])))[:n]
+    return up, dn, gs
+
 # ---------------- site pages --------------------------------------------
 CSS = """
 body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;max-width:1100px;margin:0 auto;padding:18px;color:#222;line-height:1.65;background:#fafafa}
@@ -590,6 +763,7 @@ NAV = (f'<nav><a href="index.html" {dk("nav_home")}>{en_of("nav_home")}</a>'
        f'<a href="gene.html" {dk("nav_gene")}>{en_of("nav_gene")}</a>'
        f'<a href="cohorts.html" {dk("nav_cohorts")}>{en_of("nav_cohorts")}</a>'
        f'<a href="downloads.html" {dk("nav_downloads")}>{en_of("nav_downloads")}</a>'
+       f'<a href="pathways.html" {dk("nav_pathways")}>{en_of("nav_pathways")}</a>'
        f'<a href="methods.html" {dk("nav_methods")}>{en_of("nav_methods")}</a>'
        '<span class="lang-toggle"><a href="#" data-lang="en" onclick="pa_setLang(\'en\');return false;">EN</a>'
        ' | <a href="#" data-lang="zh" onclick="pa_setLang(\'zh\');return false;">\u4e2d\u6587</a></span></nav>')
@@ -669,8 +843,53 @@ def build_gene():
         + f'<div class="card"><input type="text" id="q" data-i18n-ph="gene_ph" placeholder="{en_of("gene_ph")}" onkeydown="if(event.key===\'Enter\')searchGene()">'
           f' <button onclick="searchGene()" {dk("gene_go")}>{en_of("gene_go")}</button></div>'
         + f'<p><span {dk("gene_quick")}>{en_of("gene_quick")}</span> {quick}</p><div id="result"></div>'
-        + '<script src="data.js"></script>\n<script src="gene_app.js"></script>')
+        + '<script src="data.js"></script>\n<script src="gene_pathways.js"></script>\n<script src="gene_consensus.js"></script>\n<script src="gene_app.js"></script>')
     return page("title_gene", body)
+
+def build_cohort_analysis():
+    """Per-bulk-cohort analysis-layer cards: top enriched pathways, significant
+    programs, deconvolution estimates, link to full DE tables."""
+    ora, gsea, psum, dsum, _ = load_step8()
+    cards = []
+    for c in BULK_COHORTS:
+        cid = c["id"]
+        up, dn, gs = _top_enrichment(cid, ora, gsea)
+        if up or dn or gs:
+            parts = []
+            if up:
+                parts.append("<b>ORA up:</b> " + "; ".join(
+                    f'{_html.escape(r["term_name"])} ({_html.escape(r["database"])}, FDR={float(r["FDR"]):.2g})' for r in up))
+            if dn:
+                parts.append("<b>ORA down:</b> " + "; ".join(
+                    f'{_html.escape(r["term_name"])} ({_html.escape(r["database"])}, FDR={float(r["FDR"]):.2g})' for r in dn))
+            if gs:
+                parts.append("<b>GSEA:</b> " + "; ".join(
+                    f'{_html.escape(r["term_name"])} (NES={float(r["NES"]):+.2f}, FDR={float(r["FDR"]):.2g})' for r in gs))
+            enr = "<br>".join(parts)
+        else:
+            enr = f'<span style="color:#888" {dk("an_enr_ns")}>{en_of("an_enr_ns")}</span>'
+        prows = [r for r in psum if r["cohort"] == cid and _fdr_ok(r["FDR"])]
+        up_p = [r["program"] for r in prows if float(r["diff"]) > 0]
+        dn_p = [r["program"] for r in prows if float(r["diff"]) < 0]
+        if prows:
+            prog = (f'<b {dk("an_prog_up")}>{en_of("an_prog_up")}</b>: {", ".join(up_p) or "—"}<br>'
+                    f'<b {dk("an_prog_down")}>{en_of("an_prog_down")}</b>: {", ".join(dn_p) or "—"}')
+        else:
+            prog = f'<span style="color:#888" {dk("an_prog_ns")}>{en_of("an_prog_ns")}</span>'
+        drows = [r for r in dsum if r["cohort"] == cid and _fdr_ok(r["FDR"])]
+        if drows:
+            dec = (", ".join(f'{r["population"]} {"▲" if float(r["diff"]) > 0 else "▼"}' for r in drows)
+                   + f'<br><span style="font-size:12px;color:#666" {dk("an_deconv_lab")}>{en_of("an_deconv_lab")}</span>')
+        else:
+            dec = (f'<span style="color:#888" {dk("an_deconv_ns")}>{en_of("an_deconv_ns")}</span>'
+                   f'<br><span style="font-size:12px;color:#666" {dk("an_deconv_lab")}>{en_of("an_deconv_lab")}</span>')
+        cards.append(
+            f'<div class="card"><h3>{cid}</h3>'
+            f'<p><b {dk("an_enr")}>{en_of("an_enr")}</b><br><span style="font-size:13px">{enr}</span></p>'
+            f'<p><b {dk("an_prog")}>{en_of("an_prog")}</b><br><span style="font-size:13px">{prog}</span></p>'
+            f'<p><b {dk("an_deconv")}>{en_of("an_deconv")}</b><br><span style="font-size:13px">{dec}</span></p>'
+            f'<p style="font-size:13px"><a href="data/de_tables.zip" {dk("an_det")}>{en_of("an_det")}</a></p></div>')
+    return (f'<h2 {dk("an_h")}>{en_of("an_h")}</h2>' + "".join(cards))
 
 def build_cohorts():
     rows = []
@@ -719,8 +938,51 @@ def build_cohorts():
     other = (f'<h3 {dk("co_other_h")}>{en_of("co_other_h")}</h3><ul>'
              + "".join(f'<li {dk(f"co_o{i}")}>{en_of(f"co_o{i}")}</li>' for i in (1, 2, 3))
              + "</ul>")
-    body = DISCLAIMER + bulk_tbl + sc_tbl + sp_sec + other
+    body = DISCLAIMER + bulk_tbl + build_cohort_analysis() + sc_tbl + sp_sec + other
     return page("title_cohorts", body)
+
+PATH_APP_JS = r"""
+function p_lang(){ try{ return localStorage.getItem('pa_lang')||'en'; }catch(e){ return 'en'; } }
+function p_t(k){ var l=p_lang(); var d=window.PA_I18N[k]; return d?d[l]:k; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtf(v){ if(v==0) return '0'; if(v<1e-3) return v.toExponential(1); return v.toFixed(4); }
+function searchPath(){
+  var q=(document.getElementById('pq').value||'').trim().toLowerCase();
+  var box=document.getElementById('presult');
+  var btn=document.getElementById('pgo');
+  if(!q){ box.innerHTML='<p>'+p_t('path_none')+'</p>'; return; }
+  var all=Object.entries(PATHWAYS).filter(function(e){ return e[1].n.toLowerCase().indexOf(q)>=0; });
+  if(!all.length){ box.innerHTML='<p>'+p_t('path_none')+'</p>'; return; }
+  var shown=all.slice(0,100);
+  var h='<table><tr><th>'+p_t('path_th_term')+'</th><th>'+p_t('path_th_db')+'</th><th>'+p_t('path_th_ev')+'</th><th>'+p_t('path_th_stat')+'</th></tr>';
+  shown.forEach(function(e){
+    var id=e[0], t=e[1];
+    var ev=t.h.map(function(x){
+      var badge = x[2]==='gsea' ? 'GSEA' : x[2];
+      return esc(x[0])+' <span class="badge">'+badge+'</span>';
+    }).join('<br>');
+    var st=t.h.map(function(x){
+      var m = x[2]==='gsea' ? ('NES '+(+x[3]).toFixed(2)) : ('ratio '+x[3]);
+      return m+'<br><span style="color:#666">FDR='+fmtf(x[4])+'</span>';
+    }).join('<br>');
+    h+='<tr><td><b>'+esc(t.n)+'</b><br><span style="font-size:12px;color:#666">'+esc(id)+'</span></td>'
+      +'<td>'+esc(t.d)+'</td><td style="font-size:12px">'+ev+'</td><td style="font-size:12px">'+st+'</td></tr>';
+  });
+  h+='</table>';
+  if(all.length>100) h+='<p style="color:#888">'+p_t('path_more')+' ('+all.length+' hits)</p>';
+  box.innerHTML=h;
+}
+"""
+
+def build_pathways():
+    body = (DISCLAIMER
+        + f'<p {dk("path_intro")}>{en_of("path_intro")}</p>'
+        + f'<div class="caveat" {dk("path_note")}>{en_of("path_note")}</div>'
+        + f'<div class="card"><input type="text" id="pq" data-i18n-ph="path_ph" placeholder="{en_of("path_ph")}" onkeydown="if(event.key===\'Enter\')searchPath()">'
+          f' <button id="pgo" onclick="searchPath()" {dk("path_go")}>{en_of("path_go")}</button></div>'
+        + '<div id="presult"></div>'
+        + '<script src="pathways.js"></script>\n<script>\n' + PATH_APP_JS + '\n</script>')
+    return page("title_pathways", body)
 
 def build_downloads():
     items = [
@@ -734,6 +996,16 @@ def build_downloads():
         ("alignment_table.csv", "dl_align"),
         ("roi_metadata.csv", "dl_roi"),
         ("curation_table.csv", "dl_cur"),
+        ("enrichment_ora.csv", "dl8_ora"),
+        ("enrichment_gsea.csv", "dl8_gsea"),
+        ("program_scores.csv", "dl8_psc"),
+        ("program_summary.csv", "dl8_psm"),
+        ("deconv_scores.csv", "dl8_dsc"),
+        ("deconv_summary.csv", "dl8_dsm"),
+        ("consensus_annotated.csv", "dl8_can"),
+        ("consensus_enrichment.csv", "dl8_cen"),
+        ("lr_interactions_CRSwNP_vs_control.csv", "dl8_lr1"),
+        ("lr_interactions_CRSsNP_vs_control.csv", "dl8_lr2"),
     ]
     lis = "".join(f'<li><a href="data/{f}">{f}</a> — <span {dk(k)}>{en_of(k)}</span></li>' for f, k in items)
     body = (DISCLAIMER + "<ul>" + lis + "</ul>"
@@ -741,8 +1013,8 @@ def build_downloads():
     return page("title_downloads", body)
 
 def build_methods():
-    lis = "".join(f'<li {dk(f"m_f{i}")}>{en_of(f"m_f{i}")}</li>' for i in range(1, 6))
-    lims = "".join(f'<li {dk(f"m_l{i}")}>{en_of(f"m_l{i}")}</li>' for i in range(1, 8))
+    lis = "".join(f'<li {dk(f"m_f{i}")}>{en_of(f"m_f{i}")}</li>' for i in range(1, 7))
+    lims = "".join(f'<li {dk(f"m_l{i}")}>{en_of(f"m_l{i}")}</li>' for i in range(1, 9))
     body = (DISCLAIMER
         + f'<h3 {dk("m_flow_h")}>{en_of("m_flow_h")}</h3><ol>' + lis + "</ol>"
         + f'<h3 {dk("m_lim_h")}>{en_of("m_lim_h")}</h3><ul>' + lims + "</ul>"
@@ -756,7 +1028,9 @@ def gene_js_strings():
     keys = ["g_empty", "g_notfound", "g_suggest", "g_nosim", "g_bulk_t", "g_th_cohort",
             "g_th_contrast", "g_th_comp", "g_th_desc", "g_limit_badge", "g_bulk_chart",
             "g_sc_t", "g_bulk_nm", "g_sc_nm", "g_sp_t", "g_cd45", "g_panck",
-            "g_sp_cav", "g_notpanel", "g_lim_colon"]
+            "g_sp_cav", "g_notpanel", "g_lim_colon",
+            "gpw_t", "gpw_path", "gpw_cons", "gpw_cons_up", "gpw_cons_down",
+            "gpw_cons_no", "gpw_target", "gpw_ncol", "path_th_term", "path_th_db"]
     obj = {k: {"en": en_of(k), "zh": zh_of(k)} for k in keys}
     # caveat full blocks keyed cav_<id> for the dynamic gene page
     cav = {k: {"en": en_of(k), "zh": zh_of(k)} for k in _STRINGS
@@ -802,6 +1076,20 @@ function searchGene(g0){
   const shown = [...new Set(caveats.map(c=>'<div class="caveat">'+cavtxt(c.id)+'</div>'))];
   if(shown.length) html += shown.join('');
   html += '<h3>'+gs('g_bulk_chart')+'</h3><canvas id="cv" width="900" height="340"></canvas></div>';
+  // pathways & consensus block
+  html += '<div class="card"><h3>'+gs('gpw_t')+'</h3>';
+  const pw = (typeof GENEPW!=='undefined') ? GENEPW[key] : null;
+  if(pw && pw.length){
+    html += '<p><b>'+gs('gpw_path')+'</b></p><table><tr><th>'+gs('path_th_term')+'</th><th>'+gs('path_th_db')+'</th><th>'+gs('gpw_ncol')+'</th></tr>';
+    pw.forEach(function(p){ html += '<tr><td>'+p[0]+'</td><td>'+p[1]+'</td><td>'+p[3]+'</td></tr>'; });
+    html += '</table>';
+  } else html += '<p style="color:#888">—</p>';
+  const cs = (typeof CONS!=='undefined') ? CONS[key] : null;
+  html += '<p><b>'+gs('gpw_cons')+':</b> ';
+  if(cs){ html += (cs.d==='up' ? gs('gpw_cons_up') : gs('gpw_cons_down'));
+    if(cs.t) html += ' · <span class="badge sig">'+gs('gpw_target')+': '+cs.t+'</span>';
+  } else html += gs('gpw_cons_no');
+  html += '</p></div>';
   // sc table
   html += '<div class="card"><h3>'+gs('g_sc_t')+'</h3>';
   if(r.s){
@@ -860,6 +1148,7 @@ def main():
 
     genes, sc_labels, n_genes = build_gene_data()
     print(f"genes in union: {n_genes}")
+    build_pathway_indices()
 
     data_js = {
         "version": VERSION, "build_date": BUILD_DATE,
@@ -889,6 +1178,8 @@ def main():
         fh.write(build_cohorts())
     with open(os.path.join(SITE, "downloads.html"), "w", encoding="utf-8") as fh:
         fh.write(build_downloads())
+    with open(os.path.join(SITE, "pathways.html"), "w", encoding="utf-8") as fh:
+        fh.write(build_pathways())
     with open(os.path.join(SITE, "methods.html"), "w", encoding="utf-8") as fh:
         fh.write(build_methods())
 
@@ -909,6 +1200,23 @@ def main():
     ]
     for src, dst in copies:
         shutil.copy(src, os.path.join(data_dir, dst))
+
+    # step8 analysis-layer files
+    s8 = os.path.join(PROJ, "analysis", "step8_expansion")
+    copies8 = [
+        ("enrichment/enrichment_ora.csv", "enrichment_ora.csv"),
+        ("enrichment/enrichment_gsea.csv", "enrichment_gsea.csv"),
+        ("programs/program_scores.csv", "program_scores.csv"),
+        ("programs/program_summary.csv", "program_summary.csv"),
+        ("deconv/deconv_scores.csv", "deconv_scores.csv"),
+        ("deconv/deconv_summary.csv", "deconv_summary.csv"),
+        ("consensus_annotated.csv", "consensus_annotated.csv"),
+        ("consensus_enrichment.csv", "consensus_enrichment.csv"),
+        ("lr/lr_interactions_CRSwNP_vs_control.csv", "lr_interactions_CRSwNP_vs_control.csv"),
+        ("lr/lr_interactions_CRSsNP_vs_control.csv", "lr_interactions_CRSsNP_vs_control.csv"),
+    ]
+    for src, dst in copies8:
+        shutil.copy(os.path.join(s8, src), os.path.join(data_dir, dst))
 
     # de tables zip
     de_dir = os.path.join(s2, "de")
