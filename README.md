@@ -1,7 +1,7 @@
 # PolypAtlas — CRSwNP Multi-omics Resource（网站工程说明）
 
 > 工作名称可更名：全站唯一名称配置在 `web/build/build.py` 的 `WORKING_NAME` 变量；
-> 改名后重新运行 `python3 build/build.py` 即可全站生效（v1.1 起双语支持随构建自动保留）。
+> 改名后重新运行 `python3 build/build.py` 即可全站生效（v1.1 起双语支持随构建自动保留；v1.2 起分析层索引随构建自动重建）。
 
 ## 中英双语（v1.1）
 
@@ -21,10 +21,11 @@
 | 页面 | 功能 |
 |---|---|
 | index.html | 项目介绍、headline 数字、三层证据说明、诚实声明 |
-| gene.html | 基因查询：bulk 16 队列 logFC/FDR + 条形图、单细胞 41 对比、空间两区室值（或“不在 CTA panel 中”说明） |
-| cohorts.html | 16 个 bulk 队列、10 个单细胞数据集、空间数据集的元数据 + 逐条限制标注（黄色 ⚠ 块） |
-| downloads.html | 结果表下载（证据矩阵、DE 全表、组成表、策展表等） |
-| methods.html | 流程、已知限制全文、数据来源、作者占位符 |
+| gene.html | 基因查询：bulk 16 队列 logFC/FDR + 条形图、单细胞 41 对比、空间两区室值（或“不在 CTA panel 中”说明）；**v1.2 新增通路与共识块**（含该基因且 FDR<0.05 富集于 ≥2 对比的通路；共识清单成员身份 + 已知药物靶点标注） |
+| pathways.html | **v1.2 新增**：通路查询——搜索 FDR<0.05 的富集通路，看它在哪些队列/细胞类型富集（ORA 方向或 GSEA NES + FDR） |
+| cohorts.html | 16 个 bulk 队列、10 个单细胞数据集、空间数据集的元数据 + 逐条限制标注（黄色 ⚠ 块）；**v1.2 新增每队列分析块**（top 富集通路、显著程序打分、免疫丰度估计） |
+| downloads.html | 结果表下载（证据矩阵、DE 全表、组成表、策展表等）；**v1.2 新增 step-8 全部分析文件**（富集、程序打分、去卷积、LR、注释共识基因） |
+| methods.html | 流程（含 v1.2 分析层）、已知限制全文、数据来源、作者占位符 |
 
 ## 重新生成
 
