@@ -37,16 +37,21 @@ python3 build.py   # 需要 pandas；输出到 ../site/
 构建产物 `site/data.js` 是预计算的基因数据（23,241 基因；bulk 16 队列、单细胞 41 对比、空间两区室），
 纯前端查询无需后端；`site/data/` 为下载文件（56 MB 以内）。
 
-## 上线（GitHub Pages）
+## 上线（GitHub Pages）—— 已上线（2026-10-18）
 
-本地已 `git init` 并提交首版（时间戳在 git 历史中）。发布为公开仓库的步骤：
+- 仓库：https://github.com/yuye8848/polypatlas （公开，`main` 分支为源码）
+- 正式地址：**https://yuye8848.github.io/polypatlas/**
+- 发布方式：GitHub Pages 的分支发布只支持根目录或 `/docs`，不能直接发布 `site/` 子目录；
+  因此站点内容经 `git subtree split` 发布到专用 `gh-pages` 分支的根目录，Pages 源 = `gh-pages` / `/`。
+
+更新网站的标准流程：
 
 ```bash
 cd ~/workspace/sci-crswnp-resource/web
-gh auth login                       # 用户侧一次：浏览器授权
-gh repo create polypatlas --public --source=. --push
-gh api repos/{owner}/polypatlas/pages -X POST -f 'build_type=legacy' -f 'source[branch]=main' -f 'source[path]=/site'
-# 完成后地址：https://{owner}.github.io/polypatlas/
+# 1) 改数据或 build/build.py 后重建并提交 main
+python3 build/build.py && git add -A && git commit -m "update" && git push
+# 2) 把 site/ 重新切分到 gh-pages 并强推（Pages 自动重新发布）
+git subtree split --prefix site -b gh-pages-tmp
+git push origin gh-pages-tmp:gh-pages --force
+git branch -D gh-pages-tmp
 ```
-
-注意：`site/` 是子目录，GitHub Pages 需把发布目录设为 `/site`。
