@@ -1,0 +1,422 @@
+{
+  "cohorts": [
+    {
+      "accession": "GSE267331",
+      "design": "SINUS-52 randomized trial, paired within-subject pre/post nasal brushing; limma paired model",
+      "n": {
+        "dupilumab_pairs": 47,
+        "placebo_pairs": 19
+      },
+      "contrasts": [
+        "dupilumab_post_vs_pre",
+        "placebo_post_vs_pre"
+      ],
+      "contrast_details": [
+        {
+          "gse": "GSE267331",
+          "contrast": "dupilumab_post_vs_pre",
+          "n_case": 47,
+          "n_control": 47,
+          "method": "limma_paired",
+          "note": "SINUS-52 nasal brushings; paired within-subject; Early Termination excluded (4856 FDR<0.05)"
+        },
+        {
+          "gse": "GSE267331",
+          "contrast": "placebo_post_vs_pre",
+          "n_case": 19,
+          "n_control": 19,
+          "method": "limma_paired",
+          "note": "SINUS-52 nasal brushings; paired within-subject; Early Termination excluded (0 FDR<0.05)"
+        }
+      ],
+      "stats": {
+        "dupilumab_DE_FDR05": 4856,
+        "placebo_DE_FDR05": 0,
+        "module_program_changes": [
+          {
+            "program": "il13_response",
+            "mean_post": 0.0673669675099345,
+            "mean_pre": 0.161600719624576,
+            "delta_post_minus_pre": -0.094234,
+            "p_paired_signedrank": 9.83558265943427e-08,
+            "FDR": 1.27862574572646e-06,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "goblet_secretory",
+            "mean_post": 0.366789001158752,
+            "mean_pre": 0.429026870742355,
+            "delta_post_minus_pre": -0.062238,
+            "p_paired_signedrank": 1.61420477695628e-06,
+            "FDR": 1.04923310502158e-05,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "type2_custom",
+            "mean_post": -0.156845407159601,
+            "mean_pre": -0.0879086827634945,
+            "delta_post_minus_pre": -0.068937,
+            "p_paired_signedrank": 5.64976572547947e-06,
+            "FDR": 2.44823181437444e-05,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "mast",
+            "mean_post": -0.0919078465698125,
+            "mean_pre": 0.0308992944211248,
+            "delta_post_minus_pre": -0.122807,
+            "p_paired_signedrank": 3.93523257287142e-05,
+            "FDR": 0.000127895058618321,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "ilc2",
+            "mean_post": -0.166314783289755,
+            "mean_pre": -0.121149353017341,
+            "delta_post_minus_pre": -0.045165,
+            "p_paired_signedrank": 0.000325916453817853,
+            "FDR": 0.000847382779926417,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "hypoxia",
+            "mean_post": 0.311556154228648,
+            "mean_pre": 0.32304709985996,
+            "delta_post_minus_pre": -0.011491,
+            "p_paired_signedrank": 0.00330775214567324,
+            "FDR": 0.00716679631562535,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "proliferation",
+            "mean_post": 0.24925684343534,
+            "mean_pre": 0.242185592050137,
+            "delta_post_minus_pre": 0.007071,
+            "p_paired_signedrank": 0.0515623478461293,
+            "FDR": 0.0957586459999544,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "eosinophil",
+            "mean_post": -0.212854701291941,
+            "mean_pre": -0.1894823438755,
+            "delta_post_minus_pre": -0.023372,
+            "p_paired_signedrank": 0.0744025879907752,
+            "FDR": 0.118007251606981,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "fibroblast_ecm",
+            "mean_post": 0.111624188787356,
+            "mean_pre": 0.132100319752387,
+            "delta_post_minus_pre": -0.020476,
+            "p_paired_signedrank": 0.0816973280356023,
+            "FDR": 0.118007251606981,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "barrier",
+            "mean_post": 0.52162748465599,
+            "mean_pre": 0.511171437794474,
+            "delta_post_minus_pre": 0.010456,
+            "p_paired_signedrank": 0.11179225192592,
+            "FDR": 0.145329927503695,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "neutrophil",
+            "mean_post": 0.200949195559254,
+            "mean_pre": 0.165436190740465,
+            "delta_post_minus_pre": 0.035513,
+            "p_paired_signedrank": 0.219851222844397,
+            "FDR": 0.25982417245247,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "interferon",
+            "mean_post": 0.32534026079617,
+            "mean_pre": 0.315884352645216,
+            "delta_post_minus_pre": 0.009456,
+            "p_paired_signedrank": 0.539284806843156,
+            "FDR": 0.584225207413419,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          },
+          {
+            "program": "ciliated",
+            "mean_post": 0.418110342707785,
+            "mean_pre": 0.433005527719452,
+            "delta_post_minus_pre": -0.014895,
+            "p_paired_signedrank": 0.725388985095066,
+            "FDR": 0.725388985095066,
+            "n_pairs": 47,
+            "test": "paired signed-rank (post-minus-pre per subject)"
+          }
+        ],
+        "marker_reversal_summary": "7/8 type-2 markers direction-correct (IL33 essentially unchanged, logFC=+0.016, FDR~1.0); 3/8 FDR<0.05 (POSTN, SERPINB2, CLC)"
+      },
+      "caveats": [
+        "Nasal brushing samples, not polyp tissue \u2014 cellular context differs from the polyp-resource core.",
+        "Readout is marker-level reversal (mRNA), not clinical endpoints (NPS, SNOT-22).",
+        "8-gene panel direction check: 7/8 direction-correct per DE file; IL33 essentially flat (+0.016, FDR~1.0).",
+        "Placebo arm (19 pairs): 0 genes FDR<0.05 \u2014 the reversal is treatment-specific.",
+        "Program scores are ssGSEA-style estimates, labeled as estimates, not measured protein."
+      ]
+    }
+  ],
+  "marker_reversal": [
+    {
+      "gene": "CLC",
+      "logFC": -1.0205,
+      "t": -3.914,
+      "p": 0.000294369216435949,
+      "FDR": 0.0060803312839575,
+      "direction_correct": true,
+      "significant_FDR05": true
+    },
+    {
+      "gene": "CCL26",
+      "logFC": -0.0731,
+      "t": -1.104,
+      "p": 0.275272415732677,
+      "FDR": 0.55557567015653,
+      "direction_correct": true,
+      "significant_FDR05": false
+    },
+    {
+      "gene": "CCL13",
+      "logFC": -0.0239,
+      "t": -1.512,
+      "p": 0.137290164986854,
+      "FDR": 0.377032486345684,
+      "direction_correct": true,
+      "significant_FDR05": false
+    },
+    {
+      "gene": "IL33",
+      "logFC": 0.016,
+      "t": 0.059,
+      "p": 0.953502002461582,
+      "FDR": 0.999999999999927,
+      "direction_correct": false,
+      "significant_FDR05": false
+    },
+    {
+      "gene": "TSLP",
+      "logFC": -0.0151,
+      "t": -1.309,
+      "p": 0.196904963787653,
+      "FDR": 0.463575175616484,
+      "direction_correct": true,
+      "significant_FDR05": false
+    },
+    {
+      "gene": "POSTN",
+      "logFC": -2.6684,
+      "t": -5.56,
+      "p": 1.27429379629213e-06,
+      "FDR": 0.000194072460479866,
+      "direction_correct": true,
+      "significant_FDR05": true
+    },
+    {
+      "gene": "SERPINB2",
+      "logFC": -0.9795,
+      "t": -4.022,
+      "p": 0.000210411858482152,
+      "FDR": 0.00491257101736265,
+      "direction_correct": true,
+      "significant_FDR05": true
+    },
+    {
+      "gene": "ALOX15",
+      "logFC": -0.4211,
+      "t": -2.542,
+      "p": 0.0144321264075692,
+      "FDR": 0.0846194650223963,
+      "direction_correct": true,
+      "significant_FDR05": false
+    }
+  ],
+  "program_scores_changes": [
+    {
+      "program": "il13_response",
+      "mean_post": 0.0673669675099345,
+      "mean_pre": 0.161600719624576,
+      "delta_post_minus_pre": -0.094234,
+      "p_paired_signedrank": 9.83558265943427e-08,
+      "FDR": 1.27862574572646e-06,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "goblet_secretory",
+      "mean_post": 0.366789001158752,
+      "mean_pre": 0.429026870742355,
+      "delta_post_minus_pre": -0.062238,
+      "p_paired_signedrank": 1.61420477695628e-06,
+      "FDR": 1.04923310502158e-05,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "type2_custom",
+      "mean_post": -0.156845407159601,
+      "mean_pre": -0.0879086827634945,
+      "delta_post_minus_pre": -0.068937,
+      "p_paired_signedrank": 5.64976572547947e-06,
+      "FDR": 2.44823181437444e-05,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "mast",
+      "mean_post": -0.0919078465698125,
+      "mean_pre": 0.0308992944211248,
+      "delta_post_minus_pre": -0.122807,
+      "p_paired_signedrank": 3.93523257287142e-05,
+      "FDR": 0.000127895058618321,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "ilc2",
+      "mean_post": -0.166314783289755,
+      "mean_pre": -0.121149353017341,
+      "delta_post_minus_pre": -0.045165,
+      "p_paired_signedrank": 0.000325916453817853,
+      "FDR": 0.000847382779926417,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "hypoxia",
+      "mean_post": 0.311556154228648,
+      "mean_pre": 0.32304709985996,
+      "delta_post_minus_pre": -0.011491,
+      "p_paired_signedrank": 0.00330775214567324,
+      "FDR": 0.00716679631562535,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "proliferation",
+      "mean_post": 0.24925684343534,
+      "mean_pre": 0.242185592050137,
+      "delta_post_minus_pre": 0.007071,
+      "p_paired_signedrank": 0.0515623478461293,
+      "FDR": 0.0957586459999544,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "eosinophil",
+      "mean_post": -0.212854701291941,
+      "mean_pre": -0.1894823438755,
+      "delta_post_minus_pre": -0.023372,
+      "p_paired_signedrank": 0.0744025879907752,
+      "FDR": 0.118007251606981,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "fibroblast_ecm",
+      "mean_post": 0.111624188787356,
+      "mean_pre": 0.132100319752387,
+      "delta_post_minus_pre": -0.020476,
+      "p_paired_signedrank": 0.0816973280356023,
+      "FDR": 0.118007251606981,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "barrier",
+      "mean_post": 0.52162748465599,
+      "mean_pre": 0.511171437794474,
+      "delta_post_minus_pre": 0.010456,
+      "p_paired_signedrank": 0.11179225192592,
+      "FDR": 0.145329927503695,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "neutrophil",
+      "mean_post": 0.200949195559254,
+      "mean_pre": 0.165436190740465,
+      "delta_post_minus_pre": 0.035513,
+      "p_paired_signedrank": 0.219851222844397,
+      "FDR": 0.25982417245247,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "interferon",
+      "mean_post": 0.32534026079617,
+      "mean_pre": 0.315884352645216,
+      "delta_post_minus_pre": 0.009456,
+      "p_paired_signedrank": 0.539284806843156,
+      "FDR": 0.584225207413419,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    },
+    {
+      "program": "ciliated",
+      "mean_post": 0.418110342707785,
+      "mean_pre": 0.433005527719452,
+      "delta_post_minus_pre": -0.014895,
+      "p_paired_signedrank": 0.725388985095066,
+      "FDR": 0.725388985095066,
+      "n_pairs": 47,
+      "test": "paired signed-rank (post-minus-pre per subject)"
+    }
+  ],
+  "treatment_contrasts_inventory": {
+    "clinical_treatment": [
+      {
+        "gse": "GSE267331",
+        "contrast": "dupilumab_post_vs_pre",
+        "n_case": 47,
+        "n_control": 47,
+        "method": "limma_paired",
+        "note": "SINUS-52 nasal brushings; paired within-subject; Early Termination excluded (4856 FDR<0.05)"
+      },
+      {
+        "gse": "GSE267331",
+        "contrast": "placebo_post_vs_pre",
+        "n_case": 19,
+        "n_control": 19,
+        "method": "limma_paired",
+        "note": "SINUS-52 nasal brushings; paired within-subject; Early Termination excluded (0 FDR<0.05)"
+      }
+    ],
+    "invitro_stimulation_note": [
+      {
+        "gse": "GSE150846",
+        "contrast": "type2stim_vs_baseline",
+        "note": "sorted ILC2 (3/3/3); LOW_POWER-adjacent tiny n (5443 FDR<0.05)"
+      },
+      {
+        "gse": "GSE213809",
+        "contrast": "NP_vs_PB_stimulated",
+        "note": "sorted ILC2 +/- IL-33; tissue-of-origin x secretion response; donor #153 PB missing (4 FDR<0.05)"
+      },
+      {
+        "gse": "GSE213809",
+        "contrast": "EP_vs_EN_NPstim",
+        "note": "sorted ILC2 +/- IL-33; tissue-of-origin x secretion response; donor #153 PB missing (867 FDR<0.05)"
+      }
+    ],
+    "note": "No steroid, surgery, or other clinical treatment contrasts were run among the 30 bulk contrasts."
+  }
+}
