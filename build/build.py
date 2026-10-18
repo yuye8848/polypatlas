@@ -23,7 +23,7 @@ from datetime import date
 BASE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(os.path.dirname(BASE))  # ~/workspace/sci-crswnp-resource
 SITE = os.path.join(PROJ, "web", "site")
-VERSION = "v1.2"
+VERSION = "v1.3"
 BUILD_DATE = date.today().isoformat()
 
 # ================= i18n string registry: key -> (en, zh) =================
@@ -285,14 +285,104 @@ _def("gpw_cons_no", "Not in the consensus list.", "不在共识基因清单中�
 _def("gpw_target", "Known drug target", "已知药物靶点")
 _def("gpw_ncol", "contrasts", "对比数")
 
+# --- v1.3: step-9 added-value layers (F1/F4/F3/F6) ---
+_def("nav_treatment", "Treatment response", "治疗反应")
+_def("title_treatment", "Treatment response", "治疗反应")
+_def("g_f1_t", "Cross-cohort meta-analysis", "跨队列 Meta 分析")
+_def("g_f1_combined", "Combined logFC (random effects)", "合并 logFC（随机效应）")
+_def("g_f1_ci", "95% CI", "95% 置信区间")
+_def("g_f1_p", "Combined p", "合并 p 值")
+_def("g_f1_i2", "Heterogeneity I\u00b2", "异质性 I\u00b2")
+_def("g_f1_k", "cohorts", "队列数")
+_def("g_f1_method",
+     "Random-effects meta-analysis (DerSimonian\u2013Laird) over the primary case\u2013control contrasts of 10 bulk cohorts; per-cohort SE from lfcSE or |logFC/t|. Shown only when \u22653 cohorts measured the gene.",
+     "10 个 bulk 队列主病例-对照对比的随机效应 Meta 分析（DerSimonian\u2013Laird）；各队列标准误取自 lfcSE 或 |logFC/t|。基因在 \u22653 个队列中测得时才展示。")
+_def("g_f1_forest", "Per-cohort forest plot (\u00b11.96 SE) + meta-analysis diamond", "各队列森林图（±1.96 SE）+ Meta 分析菱形")
+_def("g_f4_t", "Top co-expressed genes", "高共表达基因")
+_def("g_f4_method",
+     "Spearman correlation across samples within each bulk cohort, Fisher-z averaged across \u22653 cohorts; top-10 positive partners restricted to evidence-matrix genes.",
+     "各 bulk 队列内样本间 Spearman 相关，经 \u22653 队列 Fisher-z 合并；仅展示证据矩阵基因中的前 10 正相关伙伴。")
+_def("g_f4_th_g", "Gene", "基因")
+_def("g_f4_th_r", "Mean r", "平均 r")
+_def("g_f4_th_k", "cohorts", "队列数")
+_def("g_f3_t", "Genetic support", "遗传支持")
+_def("g_f3_gwas", "GWAS Catalog (genome-wide significant, p\u22645e-8)", "GWAS Catalog（全基因组显著，p\u22645e-8）")
+_def("g_f3_trait", "Trait", "性状")
+_def("g_f3_bestp", "Strongest p", "最强 p 值")
+_def("g_f3_n", "associations", "关联数")
+_def("g_f3_eqtl", "GTEx v8 single-tissue eQTL presence", "GTEx v8 单组织 eQTL 存在性")
+_def("g_f3_proxy",
+     "\u26a0 GTEx has no nasal tissue data; Whole Blood / Lung / Skin are proxy tissues.",
+     "\u26a0 GTEx 无鼻组织数据；全血 / 肺 / 皮肤为代理组织。")
+_def("g_f3_method",
+     "GWAS Catalog REST v2 queried for in-scope traits (CRSwNP, nasal polyps, chronic rhinosinusitis, asthma, allergic rhinitis, eosinophil counts); GTEx v8 checked for significant single-tissue eQTL presence.",
+     "用 GWAS Catalog REST v2 查询范围内性状（CRSwNP、鼻息肉、慢性鼻窦炎、哮喘、过敏性鼻炎、嗜酸粒细胞计数）；GTEx v8 检查显著单组织 eQTL 存在性。")
+_def("g_f6_t", "Literature support", "文献支持")
+_def("g_f6_method",
+     "Gene-level claims extracted verbatim from linked PubMed abstracts of the original papers and tested against our reanalysis; audited genes only (no extrapolation).",
+     "基因水平声称逐字摘自原文关联 PubMed 摘要并用我们的重分析检验；仅限已审计基因（不外推）。")
+_def("g_f6_claims", "published claims tested", "已发表声称已检验")
+_def("g_f6_rep", "reproduced", "复现")
+_def("g_f6_dir", "direction-consistent only", "仅方向一致")
+_def("g_f6_not", "not reproduced", "未复现")
+# --- v1.3: treatment page ---
+_def("t_intro",
+     "<b>Treatment response</b>: everything on this page comes from public treatment cohorts re-analyzed uniformly. The only clinical treatment cohort in the collection is the SINUS-52 dupilumab trial (GSE267331, paired pre/post nasal brushings).",
+     "<b>治疗反应</b>：本页所有内容来自统一重分析的公开治疗队列。本集合中唯一的临床治疗队列是 SINUS-52 dupilumab 试验（GSE267331，配对治疗前后鼻刷）。")
+_def("t_dup_h", "Dupilumab (SINUS-52, GSE267331)", "Dupilumab（SINUS-52，GSE267331）")
+_def("t_dup_stats", "DE genes (FDR<0.05, paired)", "DE 基因（FDR<0.05，配对）")
+_def("t_marker_h", "Type-2 marker reversal (post vs pre)", "2 型标志物逆转（治疗后 vs 前）")
+_def("t_marker_note",
+     "7/8 markers direction-correct per the DE file (CLC/POSTN/SERPINB2 significant); IL33 essentially flat (+0.016, FDR\u22481.0) and counted as not reversed. Placebo arm: 0 genes FDR<0.05.",
+     "按 DE 文件 7/8 标志物方向正确（CLC/POSTN/SERPINB2 显著）；IL33 基本不动（+0.016，FDR\u22481.0）计为未逆转。安慰剂臂：0 基因 FDR<0.05。")
+_def("t_prog_h", "Program-score changes (paired, post \u2212 pre)", "程序打分变化（配对，治疗后 − 治疗前）")
+_def("t_prog_note",
+     "ssGSEA-style estimates from paired samples (n=47); p from paired signed-rank test. Shown: all 13 programs; bold rows are FDR<0.05.",
+     "配对样本的 ssGSEA-style 估计（n=47）；p 为配对符号秩检验。展示全部 13 个程序；加粗为 FDR<0.05。")
+_def("t_inv_h", "Treatment contrasts in this collection", "本集合中的治疗相关对比")
+_def("t_inv_note",
+     "Only contrasts actually run are listed. No steroid, surgery, or other clinical treatment contrasts were run among the 30 bulk contrasts.",
+     "仅列出实际跑过的对比。30 个 bulk 对比中没有类固醇、手术或其他临床治疗对比。")
+_def("t_drug_h", "Drug reversal candidates (in-silico hypothesis generation)", "药物逆转候选（纯计算假说生成）")
+_def("t_drug_method",
+     "Consensus signature (825 up / 196 down genes) queried against L1000CDS2 for compounds that reverse the signature; reported scores are the L1000CDS2 overlap scores. These are computational hypotheses, not experimental evidence of efficacy.",
+     "共识签名（825 上调 / 196 下调基因）在 L1000CDS2 中查询能逆转该签名的化合物；分数为 L1000CDS2  overlap 分数。这些是计算假说，非疗效实验证据。")
+_def("t_cav",
+     "\u26a0 Nasal brushing samples, not polyp tissue \u2014 cellular context differs from the polyp-resource core. Readout is marker-level mRNA reversal, not clinical endpoints (NPS, SNOT-22).",
+     "\u26a0 鼻刷样本，非息肉组织——细胞构成与息肉资源核心不同。读数是标志物 mRNA 水平的逆转，非临床终点（NPS、SNOT-22）。")
+# --- v1.3: downloads ---
+_dl9 = [
+    ("dl9_f1meta",
+     "Meta-analysis: per-gene combined logFC, 95% CI, combined p, I\u00b2, k (DerSimonian\u2013Laird, 10 primary contrasts; genes with k\u22653).",
+     "Meta 分析：逐基因合并 logFC、95% CI、合并 p、I\u00b2、k（DerSimonian\u2013Laird，10 个主对比；k\u22653 的基因）。"),
+    ("dl9_f1coh",
+     "Meta-analysis: per-cohort logFC and SE for the same genes (forest-plot input).",
+     "Meta 分析：同上基因逐队列 logFC 与 SE（森林图输入）。"),
+    ("dl9_f2",
+     "Drug reversal: L1000CDS2 hits for the consensus signature (top 50; in-silico hypothesis generation only).",
+     "药物逆转：共识签名的 L1000CDS2 命中（前 50；仅计算假说生成）。"),
+    ("dl9_f3",
+     "Genetic support: GWAS Catalog p\u22645e-8 hits and GTEx v8 eQTL presence per gene (proxy tissues noted).",
+     "遗传支持：逐基因 GWAS Catalog p\u22645e-8 命中与 GTEx v8 eQTL 存在性（已注代理组织）。"),
+    ("dl9_f4",
+     "Co-expression: top-10 positive partners per gene (Fisher-z averaged Spearman over \u22653 bulk cohorts).",
+     "共表达：逐基因前 10 正相关伙伴（\u22653 bulk 队列 Fisher-z 合并 Spearman）。"),
+    ("dl9_f6",
+     "Literature support: per-gene claim counts from the original-paper reproduction audit (audited genes only).",
+     "文献支持：原文复现审计的逐基因声称计数（仅已审计基因）。"),
+    ("dl9_f10",
+     "Treatment response: GSE267331 dupilumab stats, marker reversal, program changes, contrast inventory (JSON).",
+     "治疗反应：GSE267331 dupilumab 统计、标志物逆转、程序变化、对比清单（JSON）。"),
+]
+
 # --- methods page ---
 _def("m_flow_h", "Workflow", "流程")
 _mf = [
     ("m_f1",
-     "<b>Census &amp; curation</b>: each of the 66 human CRS / nasal-polyp GEO series was individually "
+     "<b>Census &amp; curation</b>: each of the 66 human CRS / nasal-polyp GEO series (census of 1 October 2026) was individually "
      "verified (tissue / grouping / platform / sample size) and graded core / pending / excluded with "
      "per-series evidence notes; endotype labels come only from deposited metadata, never inferred.",
-     "<b>普查与策展</b>：GEO 人类 CRS/鼻息肉查询 66 系列逐个验明（组织/分组/平台/样本量），定级 core/pending/excluded，逐条有证据注记；内型标签只认 deposited metadata，不推测。"),
+     "<b>普查与策展</b>：GEO 人类 CRS/鼻息肉查询 66 系列（2026 年 10 月 1 日普查）逐个验明（组织/分组/平台/样本量），定级 core/pending/excluded，逐条有证据注记；内型标签只认 deposited metadata，不推测。"),
     ("m_f2",
      "<b>Uniform bulk reanalysis</b>: independent differential analysis per cohort (counts \u2192 DESeq2; "
      "continuous values \u2192 limma; paired designs \u2192 paired models), preceded by a three-way scale "
@@ -762,6 +852,7 @@ a{color:#1a6fb5}
 NAV = (f'<nav><a href="index.html" {dk("nav_home")}>{en_of("nav_home")}</a>'
        f'<a href="gene.html" {dk("nav_gene")}>{en_of("nav_gene")}</a>'
        f'<a href="cohorts.html" {dk("nav_cohorts")}>{en_of("nav_cohorts")}</a>'
+       f'<a href="treatment.html" {dk("nav_treatment")}>{en_of("nav_treatment")}</a>'
        f'<a href="downloads.html" {dk("nav_downloads")}>{en_of("nav_downloads")}</a>'
        f'<a href="pathways.html" {dk("nav_pathways")}>{en_of("nav_pathways")}</a>'
        f'<a href="methods.html" {dk("nav_methods")}>{en_of("nav_methods")}</a>'
@@ -843,7 +934,7 @@ def build_gene():
         + f'<div class="card"><input type="text" id="q" data-i18n-ph="gene_ph" placeholder="{en_of("gene_ph")}" onkeydown="if(event.key===\'Enter\')searchGene()">'
           f' <button onclick="searchGene()" {dk("gene_go")}>{en_of("gene_go")}</button></div>'
         + f'<p><span {dk("gene_quick")}>{en_of("gene_quick")}</span> {quick}</p><div id="result"></div>'
-        + '<script src="data.js"></script>\n<script src="gene_pathways.js"></script>\n<script src="gene_consensus.js"></script>\n<script src="gene_app.js"></script>')
+        + '<script src="data.js"></script>\n<script src="gene_pathways.js"></script>\n<script src="gene_consensus.js"></script>\n<script src="f1_meta.js"></script>\n<script src="f1_meta_cohorts.js"></script>\n<script src="f4_coexpr.js"></script>\n<script src="f3_genetic.js"></script>\n<script src="f6_lit.js"></script>\n<script src="gene_app.js"></script>')
     return page("title_gene", body)
 
 def build_cohort_analysis():
@@ -984,6 +1075,64 @@ def build_pathways():
         + '<script src="pathways.js"></script>\n<script>\n' + PATH_APP_JS + '\n</script>')
     return page("title_pathways", body)
 
+def build_treatment():
+    s9 = os.path.join(PROJ, "analysis", "step9_features")
+    t10 = json.load(open(os.path.join(s9, "f10_treatment.json")))
+    co = t10["cohorts"][0]
+    st = co["stats"]
+    # marker reversal table
+    mrows = "".join(
+        f"<tr><td>{m['gene']}</td><td>{m['logFC']:.3f}</td><td>{m['FDR']:.4g}</td>"
+        f"<td>{'&#10003;' if m['direction_correct'] else '&#10007;'}</td>"
+        f"<td>{'&#10003;' if m['significant_FDR05'] else ''}</td></tr>"
+        for m in t10["marker_reversal"])
+    marker_tbl = ("<table><tr><th>Gene</th><th>logFC (post vs pre)</th><th>FDR</th>"
+                  "<th>Direction correct</th><th>FDR&lt;0.05</th></tr>" + mrows + "</table>")
+    # program changes table (bold FDR<0.05)
+    prows = "".join(
+        f"<tr{' style=\"font-weight:bold\"' if p['FDR'] < 0.05 else ''}>"
+        f"<td>{p['program']}</td><td>{p['delta_post_minus_pre']:.4f}</td>"
+        f"<td>{p['FDR']:.3g}</td><td>{p['n_pairs']}</td></tr>"
+        for p in t10["program_scores_changes"])
+    prog_tbl = ("<table><tr><th>Program</th><th>&Delta; (post &minus; pre)</th><th>FDR</th>"
+                "<th>Pairs</th></tr>" + prows + "</table>")
+    # inventory
+    inv = t10["treatment_contrasts_inventory"]["clinical_treatment"]
+    irows = "".join(
+        f"<tr><td>{c['gse']}</td><td>{c['contrast']}</td><td>{c['n_case']}/{c['n_control']}</td>"
+        f"<td>{c['method']}</td><td>{c['note']}</td></tr>" for c in inv)
+    inv_tbl = ("<table><tr><th>Series</th><th>Contrast</th><th>n (treat/ctrl)</th>"
+               "<th>Method</th><th>Note</th></tr>" + irows + "</table>")
+    # drug reversal table (top 50, in-silico only)
+    drugs = []
+    with open(os.path.join(s9, "f2_drugs.csv")) as fh:
+        for row in csv.DictReader(fh):
+            drugs.append(row)
+    drows = "".join(
+        f"<tr><td>{d['rank']}</td><td>{d['compound']}</td><td>{d['cell_line']}</td>"
+        f"<td>{d['dose']} {d['dose_unit']}</td><td>{float(d['score']):.4f}</td></tr>"
+        for d in drugs)
+    drug_tbl = ("<table><tr><th>#</th><th>Compound</th><th>Cell line</th><th>Dose</th>"
+                "<th>Overlap score</th></tr>" + drows + "</table>")
+    body = (DISCLAIMER
+        + f"<p {dk('t_intro')}>{en_of('t_intro')}</p>"
+        + f"<div class=\"caveat\" {dk('t_cav')}>{en_of('t_cav')}</div>"
+        + f"<h3 {dk('t_dup_h')}>{en_of('t_dup_h')}</h3>"
+        + f"<p>{co['design']}</p>"
+        + f"<p><b><span {dk('t_dup_stats')}>{en_of('t_dup_stats')}</span>:</b> "
+        f"dupilumab {st['dupilumab_DE_FDR05']} / placebo {st['placebo_DE_FDR05']} "
+        f"(paired; Early Termination excluded)</p>"
+        + f'<p><img src="f10_dupilumab_paired_scores.png" style="max-width:100%"></p>'
+        + f"<h3 {dk('t_marker_h')}>{en_of('t_marker_h')}</h3>" + marker_tbl
+        + f"<p {dk('t_marker_note')}>{en_of('t_marker_note')}</p>"
+        + f"<h3 {dk('t_prog_h')}>{en_of('t_prog_h')}</h3>" + prog_tbl
+        + f"<p {dk('t_prog_note')}>{en_of('t_prog_note')}</p>"
+        + f"<h3 {dk('t_inv_h')}>{en_of('t_inv_h')}</h3>" + inv_tbl
+        + f"<p {dk('t_inv_note')}>{en_of('t_inv_note')}</p>"
+        + f"<h3 {dk('t_drug_h')}>{en_of('t_drug_h')}</h3>"
+        + f"<p {dk('t_drug_method')}>{en_of('t_drug_method')}</p>" + drug_tbl)
+    return page("title_treatment", body)
+
 def build_downloads():
     items = [
         ("evidence_matrix_logFC.csv", "dl_evlfc"),
@@ -1006,7 +1155,18 @@ def build_downloads():
         ("consensus_enrichment.csv", "dl8_cen"),
         ("lr_interactions_CRSwNP_vs_control.csv", "dl8_lr1"),
         ("lr_interactions_CRSsNP_vs_control.csv", "dl8_lr2"),
+        ("meta_combined.csv", "dl9_f1meta"),
+        ("meta_percohort.csv", "dl9_f1coh"),
+        ("drug_reversal_l1000cds2.csv", "dl9_f2"),
+        ("genetic_support.csv", "dl9_f3"),
+        ("coexpression_top10.csv", "dl9_f4"),
+        ("literature_support.csv", "dl9_f6"),
+        ("treatment_response.json", "dl9_f10"),
     ]
+    # v1.3 download-label keys live in _dl9; register them as _STRINGS entries
+    for k, en, zh in _dl9:
+        if k not in _STRINGS:
+            _STRINGS[k] = (en, zh)
     lis = "".join(f'<li><a href="data/{f}">{f}</a> — <span {dk(k)}>{en_of(k)}</span></li>' for f, k in items)
     body = (DISCLAIMER + "<ul>" + lis + "</ul>"
             + f'<div class="caveat" {dk("dl_usage")}>{en_of("dl_usage")}</div>')
@@ -1030,7 +1190,13 @@ def gene_js_strings():
             "g_sc_t", "g_bulk_nm", "g_sc_nm", "g_sp_t", "g_cd45", "g_panck",
             "g_sp_cav", "g_notpanel", "g_lim_colon",
             "gpw_t", "gpw_path", "gpw_cons", "gpw_cons_up", "gpw_cons_down",
-            "gpw_cons_no", "gpw_target", "gpw_ncol", "path_th_term", "path_th_db"]
+            "gpw_cons_no", "gpw_target", "gpw_ncol", "path_th_term", "path_th_db",
+            "g_f1_t", "g_f1_combined", "g_f1_ci", "g_f1_p", "g_f1_i2", "g_f1_k",
+            "g_f1_method", "g_f1_forest",
+            "g_f4_t", "g_f4_method", "g_f4_th_g", "g_f4_th_r", "g_f4_th_k",
+            "g_f3_t", "g_f3_gwas", "g_f3_trait", "g_f3_bestp", "g_f3_n",
+            "g_f3_eqtl", "g_f3_proxy", "g_f3_method",
+            "g_f6_t", "g_f6_method", "g_f6_claims", "g_f6_rep", "g_f6_dir", "g_f6_not"]
     obj = {k: {"en": en_of(k), "zh": zh_of(k)} for k in keys}
     # caveat full blocks keyed cav_<id> for the dynamic gene page
     cav = {k: {"en": en_of(k), "zh": zh_of(k)} for k in _STRINGS
@@ -1090,6 +1256,8 @@ function searchGene(g0){
     if(cs.t) html += ' · <span class="badge sig">'+gs('gpw_target')+': '+cs.t+'</span>';
   } else html += gs('gpw_cons_no');
   html += '</p></div>';
+  // v1.3 added-value layers (F1/F4/F3/F6): render only when data exist for the gene
+  html += f1Block(key) + f4Block(key) + f3Block(key) + f6Block(key);
   // sc table
   html += '<div class="card"><h3>'+gs('g_sc_t')+'</h3>';
   if(r.s){
@@ -1112,6 +1280,90 @@ function searchGene(g0){
   html += '</div>';
   box.innerHTML = html;
   drawChart(vals);
+  drawF1Forest(key);
+}
+// ---- v1.3: added-value layers (F1 cross-cohort meta, F4 co-expression, F3 genetic, F6 literature) ----
+function fmtP(p){ if(p==null) return '<span style="color:#aaa">—</span>'; if(p<1e-4) return Number(p).toExponential(1); return Number(p).toFixed(4); }
+function f1Block(key){
+  const m = (typeof F1META!=='undefined') ? F1META[key] : null;
+  if(!m) return '';
+  let html = '<div class="card"><h3>'+gs('g_f1_t')+'</h3>';
+  html += '<p><b>'+gs('g_f1_combined')+':</b> '+fmt(m.lfc,3)+' &nbsp; <b>'+gs('g_f1_ci')+':</b> ['+fmt(m.lo,3)+', '+fmt(m.hi,3)+'] &nbsp; <b>'+gs('g_f1_p')+':</b> '+fmtP(m.p)+' &nbsp; <b>'+gs('g_f1_i2')+':</b> '+fmt(m.i2,1)+'% &nbsp; <b>'+gs('g_f1_k')+':</b> '+m.k+'</p>';
+  html += '<h4>'+gs('g_f1_forest')+'</h4><canvas id="cv_f1" width="900" height="360"></canvas>';
+  html += '<p style="font-size:12px;color:#666">'+gs('g_f1_method')+'</p></div>';
+  return html;
+}
+function drawF1Forest(key){
+  const cv = document.getElementById('cv_f1'); if(!cv) return;
+  const rows = (typeof F1COHORTS!=='undefined' && typeof F1COHORT_ORDER!=='undefined') ? F1COHORTS[key] : null;
+  const m = (typeof F1META!=='undefined') ? F1META[key] : null;
+  if(!rows || !m) return;
+  const ctx = cv.getContext('2d');
+  const present = F1COHORT_ORDER.map(function(c,i){ return {c:c, v:rows[i]}; }).filter(function(x){ return x.v; });
+  const n = present.length; if(!n) return;
+  cv.height = 60 + n*26 + 64;
+  const W = cv.width, H = cv.height;
+  const all = [];
+  present.forEach(function(x){ all.push(x.v[0]-1.96*x.v[1], x.v[0]+1.96*x.v[1]); });
+  all.push(m.lo, m.hi, 0);
+  let mn = Math.min.apply(null, all), mx = Math.max.apply(null, all);
+  const pad = (mx-mn)*0.1 || 0.5; mn -= pad; mx += pad;
+  const X = function(v){ return 190 + (v-mn)/(mx-mn)*(W-210); };
+  const rowY = function(i){ return 44 + i*26; };
+  ctx.clearRect(0,0,W,H);
+  ctx.font = '12px sans-serif';
+  ctx.strokeStyle = '#999'; ctx.beginPath(); ctx.moveTo(X(0),24); ctx.lineTo(X(0),H-44); ctx.stroke();
+  present.forEach(function(x,i){
+    const y = rowY(i), lfc = x.v[0], se = x.v[1];
+    ctx.fillStyle = '#333'; ctx.fillText(x.c, 8, y+4);
+    ctx.strokeStyle = '#5a8fd4'; ctx.beginPath(); ctx.moveTo(X(lfc-1.96*se),y); ctx.lineTo(X(lfc+1.96*se),y); ctx.stroke();
+    ctx.fillStyle = '#1f5fa8'; ctx.fillRect(X(lfc)-4, y-4, 8, 8);
+    ctx.fillStyle = '#666'; ctx.fillText(lfc.toFixed(2), W-64, y+4);
+  });
+  const dy = 44 + n*26 + 22;
+  ctx.fillStyle = '#333'; ctx.fillText('META (RE)', 8, dy+4);
+  ctx.fillStyle = '#b33';
+  ctx.beginPath();
+  ctx.moveTo(X(m.lo),dy); ctx.lineTo(X(m.lfc),dy-9); ctx.lineTo(X(m.hi),dy); ctx.lineTo(X(m.lfc),dy+9);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#666'; ctx.fillText(m.lfc.toFixed(2)+' ['+m.lo.toFixed(2)+', '+m.hi.toFixed(2)+']', W-64, dy+4);
+}
+function f4Block(key){
+  const rows = (typeof F4COEXPR!=='undefined') ? F4COEXPR[key] : null;
+  if(!rows || !rows.length) return '';
+  let html = '<div class="card"><h3>'+gs('g_f4_t')+'</h3><table><tr><th>'+gs('g_f4_th_g')+'</th><th>'+gs('g_f4_th_r')+'</th><th>'+gs('g_f4_th_k')+'</th></tr>';
+  rows.forEach(function(r){
+    html += '<tr><td><a href="#" onclick="searchGene(\''+r[0]+'\');return false;">'+r[0]+'</a></td><td>'+r[1].toFixed(3)+'</td><td>'+r[2]+'</td></tr>';
+  });
+  html += '</table><p style="font-size:12px;color:#666">'+gs('g_f4_method')+'</p></div>';
+  return html;
+}
+function f3Block(key){
+  const rows = (typeof F3GENETIC!=='undefined') ? F3GENETIC[key] : null;
+  if(!rows || !rows.length) return '';
+  const gwas = rows.filter(function(r){ return r.source==='GwasCatalog'; });
+  const eqtl = rows.filter(function(r){ return r.source==='GTEx'; });
+  let html = '<div class="card"><h3>'+gs('g_f3_t')+'</h3>';
+  if(gwas.length){
+    html += '<p><b>'+gs('g_f3_gwas')+'</b></p><table><tr><th>'+gs('g_f3_trait')+'</th><th>'+gs('g_f3_bestp')+'</th></tr>';
+    gwas.forEach(function(r){ html += '<tr><td>'+r.trait+'</td><td>'+fmtP(r.bestp)+'</td></tr>'; });
+    html += '</table>';
+  }
+  if(eqtl.length){
+    html += '<p><b>'+gs('g_f3_eqtl')+':</b> '+eqtl.map(function(r){ return r.trait; }).join(' \u00b7 ')+'</p>';
+    html += '<div class="caveat">'+gs('g_f3_proxy')+'</div>';
+  }
+  html += '<p style="font-size:12px;color:#666">'+gs('g_f3_method')+'</p></div>';
+  return html;
+}
+function f6Block(key){
+  const r = (typeof F6LIT!=='undefined') ? F6LIT[key] : null;
+  if(!r) return '';
+  let html = '<div class="card"><h3>'+gs('g_f6_t')+'</h3>';
+  html += '<p><b>'+r.t+'</b> '+gs('g_f6_claims')+': <span class="badge sig">'+r.r+' '+gs('g_f6_rep')+'</span> <span class="badge">'+r.d+' '+gs('g_f6_dir')+'</span>'
+    + (r.n ? ' <span class="badge warn">'+r.n+' '+gs('g_f6_not')+'</span>' : '') + '</p>';
+  html += '<p style="font-size:12px;color:#666">'+gs('g_f6_method')+'</p></div>';
+  return html;
 }
 function drawChart(vals){
   const cv = document.getElementById('cv'); if(!cv) return;
@@ -1180,8 +1432,28 @@ def main():
         fh.write(build_downloads())
     with open(os.path.join(SITE, "pathways.html"), "w", encoding="utf-8") as fh:
         fh.write(build_pathways())
+    with open(os.path.join(SITE, "treatment.html"), "w", encoding="utf-8") as fh:
+        fh.write(build_treatment())
     with open(os.path.join(SITE, "methods.html"), "w", encoding="utf-8") as fh:
         fh.write(build_methods())
+
+    # v1.3 feature JS indexes (gene page) + treatment figure
+    s9 = os.path.join(PROJ, "analysis", "step9_features")
+    for jsf in ["f1_meta.js", "f1_meta_cohorts.js", "f4_coexpr.js", "f3_genetic.js", "f6_lit.js"]:
+        shutil.copy(os.path.join(s9, jsf), os.path.join(SITE, jsf))
+    shutil.copy(os.path.join(s9, "f10_dupilumab_paired_scores.png"), os.path.join(SITE, "f10_dupilumab_paired_scores.png"))
+
+    # v1.3 download files
+    for src, dst in [
+        (os.path.join(s9, "f1_meta.csv"), "meta_combined.csv"),
+        (os.path.join(s9, "f1_meta_cohorts.csv"), "meta_percohort.csv"),
+        (os.path.join(s9, "f2_drugs.csv"), "drug_reversal_l1000cds2.csv"),
+        (os.path.join(s9, "f3_genetic.csv"), "genetic_support.csv"),
+        (os.path.join(s9, "f4_coexpr.csv"), "coexpression_top10.csv"),
+        (os.path.join(s9, "f6_lit.csv"), "literature_support.csv"),
+        (os.path.join(s9, "f10_treatment.json"), "treatment_response.json"),
+    ]:
+        shutil.copy(src, os.path.join(data_dir, dst))
 
     # data copies for downloads page
     s2 = os.path.join(PROJ, "analysis", "step2_bulk")
