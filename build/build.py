@@ -1496,6 +1496,10 @@ def main():
     shutil.make_archive(zip_path, "zip", de_dir)
     print("de_tables.zip bytes:", os.path.getsize(zip_path + ".zip"))
 
+    # custom domain for GitHub Pages (polyp.erbihou.org; DNS CNAME at Cloudflare, DNS-only)
+    with open(os.path.join(SITE, "CNAME"), "w") as fh:
+        fh.write("polyp.erbihou.org\n")
+
     total = sum(os.path.getsize(os.path.join(dp, f)) for dp, _, fns in os.walk(SITE) for f in fns)
     print("site total bytes:", total)
     print("i18n strings:", len(_STRINGS))
