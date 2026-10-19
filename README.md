@@ -40,7 +40,7 @@ python3 build.py   # 需要 pandas；输出到 ../site/
 ## 上线（GitHub Pages）—— 已上线（2026-10-18）
 
 - 仓库：https://github.com/yuye8848/polypatlas （公开，`main` 分支为源码）
-- 正式地址：**https://yuye8848.github.io/polypatlas/**
+- 正式地址：**https://polyp.erbihou.org/**（2026-10-19 绑定自定义域名；CNAME 由 build/build.py 每次构建写入 site/CNAME；DNS 在 Cloudflare，CNAME polyp → yuye8848.github.io，DNS-only；旧地址自动 301 跳转）
 - 发布方式：GitHub Pages 的分支发布只支持根目录或 `/docs`，不能直接发布 `site/` 子目录；
   因此站点内容经 `git subtree split` 发布到专用 `gh-pages` 分支的根目录，Pages 源 = `gh-pages` / `/`。
 
