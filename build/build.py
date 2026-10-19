@@ -462,8 +462,8 @@ _def("m_src",
      "全部来自 GEO 公开系列（各系列 PMID 与 GEO 链接见“队列与数据集”页）；策展报告、重分析报告与本网站构建脚本随代码仓库公开，全部数字可复现。")
 _def("m_auth_h", "Authors &amp; contact", "作者与联系")
 _def("m_auth",
-     "Authors: Peiliang Lei \u00b7 Corresponding: [to be filled] \u00b7 Cite this resource: [to be filled]",
-     "作者：Peiliang Lei · 通讯：[待填] · 引用本资源：[待填]")
+     "Authors: Peiliang Lei \u00b7 Corresponding: Peiliang Lei (of@live.com) \u00b7 Cite this resource: [to be filled]",
+     "作者：Peiliang Lei · 通讯：Peiliang Lei（of@live.com） · 引用本资源：[待填]")
 
 # ---------------- cohort metadata (from step2_report.md, numbers exact) --------
 # n / n_en: design strings for the static cohorts page + dynamic gene page
