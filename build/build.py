@@ -60,7 +60,6 @@ _def("disc",
      "<b>研究用途声明</b>：本站为鼻息肉（CRSwNP）公开转录组数据的整合查询资源，仅供科研参考，"
      "不提供临床诊断、患病概率或治疗建议。所有数值均为公开数据的统一再分析结果，每个队列的已知限制均标注在数据旁。")
 # footer pieces (name injected separately)
-_def("foot_working", "(working name, renamable)", "（工作名称，可更名）")
 _def("foot_src", "Data source: public GEO data (PMID/GEO links for each series on the \u2018Cohorts &amp; datasets\u2019 page)", "数据来源：GEO 公开数据（各系列见“队列与数据集”页的 PMID/GEO 链接）")
 _def("foot_auth", "Authors: Peiliang Lei", "作者：Peiliang Lei")
 
@@ -859,7 +858,7 @@ NAV = (f'<nav><a href="index.html" {dk("nav_home")}>{en_of("nav_home")}</a>'
        ' | <a href="#" data-lang="zh" onclick="pa_setLang(\'zh\');return false;">\u4e2d\u6587</a></span></nav>')
 WORKING_NAME = "PolypAtlas — CRSwNP Multi-omics Resource"
 DISCLAIMER = f'<div class="disc" {dk("disc")}>{en_of("disc")}</div>'
-FOOTER = (f'<div class="footer">{WORKING_NAME} <span {dk("foot_working")}>{en_of("foot_working")}</span> '
+FOOTER = (f'<div class="footer">{WORKING_NAME} '
           f'· {VERSION} · '
           f'<span {dk("foot_src")}>{en_of("foot_src")}</span> · '
           f'<span {dk("foot_auth")}>{en_of("foot_auth")}</span></div>')
