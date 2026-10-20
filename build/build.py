@@ -380,7 +380,7 @@ _mf = [
      "<b>Census &amp; curation</b>: each of the 66 human CRS / nasal-polyp GEO series (census of 1 October 2026) was individually "
      "verified (tissue / grouping / platform / sample size) and graded core / pending / excluded with "
      "per-series evidence notes; endotype labels come only from deposited metadata, never inferred.",
-     "<b>普查与策展</b>：GEO 人类 CRS/鼻息肉查询 66 系列（2026 年 10 月 1 日普查）逐个验明（组织/分组/平台/样本量），定级 core/pending/excluded，逐条有证据注记；内型标签只认 deposited metadata，不推测。"),
+     "<b>普查与策展</b>：GEO 人类 CRS/鼻息肉查询 66 系列（2026 年 10 月 1 日普查）逐个验明（组织/分组/平台/样本量），定级 core/pending/excluded，逐条有证据注记；内型标签只采用数据集原始元数据，不作推测。"),
     ("m_f2",
      "<b>Uniform bulk reanalysis</b>: independent differential analysis per cohort (counts \u2192 DESeq2; "
      "continuous values \u2192 limma; paired designs \u2192 paired models), preceded by a three-way scale "
@@ -419,7 +419,7 @@ _ml = [
      "Endotype (eosinophilic / non-eosinophilic) labels come from deposited metadata in only 6 series, "
      "most with small samples \u2014 this site does not predict tissue eosinophil counts; it only shows "
      "program-/gene-level evidence.",
-     "内型（嗜酸/非嗜酸）标签只有 6 个系列自带 deposited metadata，且多为小样本——本站不做组织嗜酸计数的预测，只做程序/基因层面的证据展示。"),
+     "内型（嗜酸/非嗜酸）标签只有 6 个系列在原始元数据中自带内型标签，且多为小样本——本站不做组织嗜酸计数的预测，只做程序/基因层面的证据展示。"),
     ("m_l2",
      "Six bulk cohorts have n\u22647 per group or low power (GSE72713, GSE150846, GSE174681, GSE330761, "
      "GSE36830, GSE194282) \u2014 their weight in the evidence matrix should be discounted.",
@@ -457,25 +457,25 @@ _def("m_src_h", "Data sources", "数据来源")
 _def("m_src",
      "All data come from public GEO series (PMID and GEO links for each series are on the "
      "\u2018Cohorts &amp; datasets\u2019 page); the curation and reanalysis reports plus this site\u2019s "
-     "build scripts are public with the code repository, so every number is reproducible.",
-     "全部来自 GEO 公开系列（各系列 PMID 与 GEO 链接见“队列与数据集”页）；策展报告、重分析报告与本网站构建脚本随代码仓库公开，全部数字可复现。")
+     "build scripts are public with the code repository, so every number is reproducible. Code: <a href=\"https://github.com/yuye8848/polypatlas\">github.com/yuye8848/polypatlas</a> \u00b7 Data archive: <a href=\"https://doi.org/10.5281/zenodo.23448780\">Zenodo DOI 10.5281/zenodo.23448780</a>.",
+     "全部来自 GEO 公开系列（各系列 PMID 与 GEO 链接见“队列与数据集”页）；策展报告、重分析报告与本网站构建脚本随代码仓库公开，全部数字可复现。代码仓库：<a href=\"https://github.com/yuye8848/polypatlas\">github.com/yuye8848/polypatlas</a> · 数据存档：<a href=\"https://doi.org/10.5281/zenodo.23448780\">Zenodo DOI 10.5281/zenodo.23448780</a>。")
 _def("m_auth_h", "Authors &amp; contact", "作者与联系")
 _def("m_auth",
-     "Authors: Peiliang Lei \u00b7 Corresponding: Peiliang Lei (of@live.com) \u00b7 Cite this resource: [to be filled]",
-     "作者：Peiliang Lei · 通讯：Peiliang Lei（of@live.com） · 引用本资源：[待填]")
+     "Authors: Peiliang Lei \u00b7 Corresponding: Peiliang Lei (of@live.com) \u00b7 Cite this resource: Lei P. PolypAtlas: a harmonised multi-omics resource integrating public transcriptomic data of chronic rhinosinusitis with nasal polyps. https://polyp.erbihou.org/ (data archive: Zenodo, DOI 10.5281/zenodo.23448780)",
+     "作者：Peiliang Lei · 通讯：Peiliang Lei（of@live.com） · 引用本资源：Lei P. PolypAtlas：整合慢性鼻窦炎伴鼻息肉公共转录组数据的统一多组学资源。https://polyp.erbihou.org/（数据存档：Zenodo，DOI 10.5281/zenodo.23448780）")
 
 # ---------------- cohort metadata (from step2_report.md, numbers exact) --------
 # n / n_en: design strings for the static cohorts page + dynamic gene page
 # note / caveat (+ _en): shown next to the data (data-i18n keys generated below)
 BULK_COHORTS = [
     {"id": "GSE136825", "n": "息肉(75) vs 对照下鼻甲(28)", "n_en": "Polyp (75) vs control inferior turbinate (28)", "method": "RNA-seq · DESeq2",
-     "sig": "5,320", "note": "本宇宙最大的 CRSwNP bulk 队列；阳性对照 panel 行为正确（CLC +3.87）。",
+     "sig": "5,320", "note": "本资源中最大的 CRSwNP bulk 队列；阳性对照组合表现符合预期（CLC +3.87）。",
      "note_en": "The largest CRSwNP bulk cohort in this collection; positive-control panel behaves correctly (CLC +3.87)."},
     {"id": "GSE179265", "n": "CRSwNP(17) vs 健康对照(7)", "n_en": "CRSwNP (17) vs healthy controls (7)", "method": "RNA-seq · DESeq2",
      "sig": "5,278", "note": "附加对比：美国 vs 日本息肉。阳性对照 7/8 显著上调（CLC +7.51）。",
      "note_en": "Additional contrast: US vs Japanese polyps. Positive controls 7/8 significantly up (CLC +7.51)."},
     {"id": "GSE338426", "n": "CRSwNP(14) vs 对照(8)", "n_en": "CRSwNP (14) vs controls (8)", "method": "RNA-seq · DESeq2",
-     "sig": "2,273", "note": "内型标签（嗜酸/非嗜酸）来自 deposited metadata。CLC +7.97。",
+     "sig": "2,273", "note": "内型标签（嗜酸/非嗜酸）来自数据集原始元数据。CLC +7.97。",
      "note_en": "Endotype labels (eosinophilic/non-eosinophilic) from deposited metadata. CLC +7.97."},
     {"id": "GSE198950", "n": "CRSwNP(5) vs 非CRS(4)", "n_en": "CRSwNP (5) vs non-CRS (4)", "method": "RNA-seq · DESeq2",
      "sig": "3,141", "caveat": "组织混杂：病例为筛窦组织、对照为下鼻甲组织——IL33/POSTN 显著反向可能源于此，使用时必须注明。",
@@ -511,7 +511,7 @@ BULK_COHORTS = [
      "sig": "0", "caveat": "原代培养细胞：全转录组 0 显著但 p 值富集于小 p 端，判为真实弱信号（非技术错误）。系列注册平台误标（Affymetrix），已按 Illumina HumanHT-12 v4 注释修正。",
      "caveat_en": "Primary cultured cells: zero transcriptome-wide significant genes but p-values enriched at the small-p end — judged a genuine weak signal (not a technical error). Series platform was mislabeled at registration (Affymetrix); corrected to Illumina HumanHT-12 v4 annotation."},
     {"id": "GSE70898_70900", "n": "息肉 T 细胞 vs 正常鼻黏膜 T 细胞(12v6)", "n_en": "Polyp T cells vs normal nasal-mucosa T cells (12v6)", "method": "芯片 · limma",
-     "sig": "9,426", "note": "同研究跨系列（GSE70898+GSE70900）合并；短期 explant 培养；平台误标已修正。",
+     "sig": "9,426", "note": "同研究跨系列（GSE70898+GSE70900）合并；短期离体组织培养；平台误标已修正。",
      "note_en": "Merged across two series of the same study (GSE70898+GSE70900); short-term explant culture; platform mislabeling corrected."},
     {"id": "GSE72713", "n": "CRSwNP(6) vs 正常对照(3)", "n_en": "CRSwNP (6) vs normal controls (3)", "method": "FPKM · limma",
      "sig": "129", "note": "n 极小（3/3/3）；lncRNA+mRNA 混合文件。",
@@ -530,7 +530,7 @@ SC_DATASETS = [
      "caveat_en": "Only 2 controls (use statistics with caution); 4 samples\u2019 matrices corrupted at the source and excluded; donor structure not declared."},
     {"id": "GSE270953", "cells": "51,926", "donors": "10", "design": "息肉5 / 扁桃体5",
      "design_en": "Polyps 5 / tonsils 5",
-     "caveat": "对照为扁桃体（免疫学上与鼻黏膜差异大），解读须加 caveat；CITE-seq 臂未处理。",
+     "caveat": "对照为扁桃体（免疫学上与鼻黏膜差异大），解读须谨慎；CITE-seq 臂未处理。",
      "caveat_en": "Controls are tonsils (immunologically distinct from nasal mucosa); interpret with this caveat; CITE-seq arm not processed."},
     {"id": "GSE249159", "cells": "42,041", "donors": "6", "design": "息肉3 / 外周血3",
      "design_en": "Polyps 3 / peripheral blood 3",
@@ -542,7 +542,7 @@ SC_DATASETS = [
      "caveat_en": "Deposited data has no CRSwNP control arm; downgraded to a single-arm composition atlas; this contrast is not listed on the site."},
     {"id": "GSE202100", "cells": "38,514", "donors": "5", "design": "CRSwNP 单臂（上皮刷检）",
      "design_en": "CRSwNP single arm (epithelial brushing)",
-     "note": "tuft 信号（POU2F3/TRPM5）富集于 ionocyte 簇，未强行拆分，如实标注。",
+     "note": "簇细胞信号（POU2F3/TRPM5）富集于离子细胞簇，未强行拆分，如实标注。",
      "note_en": "Tuft signal (POU2F3/TRPM5) enriched in the ionocyte cluster; not forcibly split, annotated as-is."},
     {"id": "GSE324445", "cells": "30,954", "donors": "10", "design": "息肉6 / 外周血4",
      "design_en": "Polyps 6 / peripheral blood 4",
@@ -550,11 +550,11 @@ SC_DATASETS = [
      "caveat_en": "Nominally \u2018sorted ILC2\u2019; measured only 36% true ILC2 and 56% CD4_T \u2014 the site shows measured composition, not the nominal label."},
     {"id": "GSE255544", "cells": "20,394", "donors": "7", "design": "CRSwNP 疾病单臂（淋巴细胞）",
      "design_en": "CRSwNP single arm (lymphocytes)",
-     "note": "待核→转正（GSM 标题证实 CRSwNP，PMID 38589618）。",
+     "note": "由待核转入核心集（GSM 标题证实为 CRSwNP，PMID 38589618）。",
      "note_en": "Pending \u2192 promoted to core (GSM titles confirm CRSwNP, PMID 38589618)."},
     {"id": "GSE156285", "cells": "10,803", "donors": "4", "design": "CRS 疾病单臂组成图谱",
      "design_en": "CRS single-arm composition atlas",
-     "note": "旧版 10x 注释缺若干上皮 marker，部分簇只能标 ambiguous。",
+     "note": "旧版 10x 注释缺若干上皮标志基因，部分簇只能标为归类不明确。",
      "note_en": "Older 10x annotation lacks several epithelial markers; some clusters can only be labeled ambiguous."},
     {"id": "GSE179292", "cells": "10,961", "donors": "4", "design": "CRSwNP 分选 T 细胞组成图谱",
      "design_en": "CRSwNP sorted-T-cell composition atlas",
