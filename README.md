@@ -31,6 +31,10 @@ If you use PolypAtlas in your work, please cite:
 
 > PolypAtlas: a curated multi-omics resource for chronic rhinosinusitis with nasal polyps. https://polyp.erbihou.org/ — archived data: Zenodo, DOI 10.5281/zenodo.23448780.
 
+## Sister resource
+
+[RhinitisAtlas](https://rhinitis.erbihou.org/) — the companion resource for allergic rhinitis, built with the same curation and analysis framework; its gene-list check tests lists against both diseases' consensus sets.
+
 ## Repository layout
 
 - `build/` — the static-site generator
