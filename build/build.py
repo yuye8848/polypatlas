@@ -857,7 +857,7 @@ NAV = (f'<nav><a href="index.html" {dk("nav_home")}>{en_of("nav_home")}</a>'
        f'<a href="methods.html" {dk("nav_methods")}>{en_of("nav_methods")}</a>'
        '<span class="lang-toggle"><a href="#" data-lang="en" onclick="pa_setLang(\'en\');return false;">EN</a>'
        ' | <a href="#" data-lang="zh" onclick="pa_setLang(\'zh\');return false;">\u4e2d\u6587</a></span></nav>')
-WORKING_NAME = "PolypAtlas — CRSwNP Multi-omics Resource"
+WORKING_NAME = "PolypAtlas — CRSwNP Multi-modal Transcriptomic Resource"
 DISCLAIMER = f'<div class="disc" {dk("disc")}>{en_of("disc")}</div>'
 FOOTER = (f'<div class="footer">{WORKING_NAME} '
           f'· {VERSION} · '
