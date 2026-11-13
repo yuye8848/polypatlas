@@ -23,7 +23,7 @@ from datetime import date
 BASE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(os.path.dirname(BASE))  # ~/workspace/sci-crswnp-resource
 SITE = os.path.join(PROJ, "web", "site")
-VERSION = "v1.3"
+VERSION = "v1.4"
 BUILD_DATE = date.today().isoformat()
 
 # ================= i18n string registry: key -> (en, zh) =================
@@ -95,10 +95,10 @@ _def("idx_bulk",
      "(direction / effect size / significance).",
      "<b>Bulk</b>：16 个队列逐队列差异分析（30 个对比），19,266 蛋白编码基因×队列证据矩阵。跨平台不合并表达矩阵，只在结果层汇总（方向/效应量/显著性）。")
 _def("idx_sc",
-     "<b>Single-cell</b>: unified annotation of 10 datasets (25-class cell vocabulary); "
+     "<b>Single-cell</b>: unified annotation of 10 datasets (27-label cell vocabulary: 26 cell types + ambiguous); "
      "476,254 cells, 105 donor units; differential statistics at donor level (pseudobulk); "
      "17,631 genes \u00d7 41 contrasts.",
-     "<b>单细胞</b>：10 个数据集统一注释（25 类细胞词表），476,254 细胞、105 供体单元；差异统计以供体为单位（pseudobulk），17,631 基因×41 对比。")
+     "<b>单细胞</b>：10 个数据集统一注释（27 标签细胞词表：26 种细胞型 + ambiguous），476,254 细胞、105 供体单元；差异统计以供体为单位（pseudobulk），17,631 基因×41 对比。")
 _def("idx_sp",
      "<b>Spatial</b>: GSE235714 GeoMx, 40 ROIs (CD45+ immune / PanCK+ epithelial compartments), "
      "1,480-gene CTA panel \u2014 donor-level differential analysis found zero FDR&lt;0.05 genes in "
@@ -140,9 +140,9 @@ _def("co_th_donors", "Donors", "供体")
 _def("co_th_design", "Design", "设计")
 _def("co_sc_h", "Single-cell unified-annotation datasets (10)", "单细胞统一注释数据集（10）")
 _def("co_sc_intro",
-     "476,254 cells and 105 donor units in total; annotated to a unified 25-class cell vocabulary; "
+     "476,254 cells and 105 donor units in total; annotated to a unified 27-label cell vocabulary (26 cell types + ambiguous); "
      "differential statistics at donor level (pseudobulk).",
-     "共 476,254 细胞、105 供体单元；注释到统一 25 类细胞词表；差异统计以供体为单位（pseudobulk）。")
+     "共 476,254 细胞、105 供体单元；注释到统一 27 标签细胞词表（26 种细胞型 + ambiguous）；差异统计以供体为单位（pseudobulk）。")
 _def("co_sp_h", "Spatial datasets (1)", "空间数据集（1）")
 _def("co_sp_intro",
      "GeoMx DSP: 40 ROIs \u00d7 10 donors (CRSwNP 6 / controls 4); panel of 1,480 genes "
@@ -151,9 +151,9 @@ _def("co_sp_intro",
 _def("co_sp_lim", "\u26a0 Spatial layer limits:", "\u26a0 空间层限制：")
 _def("co_other_h", "Other", "其他")
 _def("co_o1",
-     "11 pending series: each has named items to verify; below core standard, excluded from queries "
+     "9 pending series: each has named items to verify; below core standard, excluded from queries "
      "(see the curation report).",
-     "待核集 11 个系列：每个都有具名待核项，未达到 core 标准，不进入查询（详见策展报告）。")
+     "待核集 9 个系列：每个都有具名待核项，未达到 core 标准，不进入查询（详见策展报告）。")
 _def("co_o2",
      "25 excluded series: superseries parents, healthy in-vitro models, adjacent diseases "
      "(allergic rhinitis/asthma), non-expression omics, etc. \u2014 per-series reasons in the curation table.",
@@ -389,10 +389,10 @@ _mf = [
      "<b>Bulk 统一重分析</b>：逐队列独立差异分析（counts→DESeq2；连续值→limma；配对→配对模型），先做尺度三方核查；探针按 min-p 塌缩到 symbol；跨平台只在结果层汇总，不合并表达矩阵。"),
     ("m_f3",
      "<b>Unified single-cell annotation</b>: Leiden clustering + canonical marker scoring to a unified "
-     "25-class vocabulary (scored on the full gene matrix, not an HVG subset); positive-control "
+     "27-label vocabulary (26 cell types + ambiguous; scored on the full gene matrix, not an HVG subset); positive-control "
      "assertions (housekeeping / epithelial / immune markers) must pass before results are released; "
      "differential statistics at donor level (pseudobulk).",
-     "<b>单细胞统一注释</b>：leiden 聚类 + 规范 marker 打分到统一 25 类词表（全基因矩阵打分，非 HVG 子集）；出结果前先过阳性对照断言（管家/上皮/免疫标志）；差异统计以供体为单位（pseudobulk）。"),
+     "<b>单细胞统一注释</b>：leiden 聚类 + 规范 marker 打分到统一 27 标签词表（26 种细胞型 + ambiguous；全基因矩阵打分，非 HVG 子集）；出结果前先过阳性对照断言（管家/上皮/免疫标志）；差异统计以供体为单位（pseudobulk）。"),
     ("m_f4",
      "<b>Spatial</b>: GeoMx organized by compartment; with 6-vs-4 donors no gene reaches FDR "
      "significance, so the spatial layer serves only as a compartment-localization/display layer, not "
@@ -457,12 +457,12 @@ _def("m_src_h", "Data sources", "数据来源")
 _def("m_src",
      "All data come from public GEO series (PMID and GEO links for each series are on the "
      "\u2018Cohorts &amp; datasets\u2019 page); the curation and reanalysis reports plus this site\u2019s "
-     "build scripts are public with the code repository, so every number is reproducible. Code: <a href=\"https://github.com/yuye8848/polypatlas\">github.com/yuye8848/polypatlas</a> \u00b7 Data archive: <a href=\"https://doi.org/10.5281/zenodo.23448780\">Zenodo DOI 10.5281/zenodo.23448780</a>.",
-     "全部来自 GEO 公开系列（各系列 PMID 与 GEO 链接见“队列与数据集”页）；策展报告、重分析报告与本网站构建脚本随代码仓库公开，全部数字可复现。代码仓库：<a href=\"https://github.com/yuye8848/polypatlas\">github.com/yuye8848/polypatlas</a> · 数据存档：<a href=\"https://doi.org/10.5281/zenodo.23448780\">Zenodo DOI 10.5281/zenodo.23448780</a>。")
+     "build scripts are public with the code repository, so every number is reproducible. Code: <a href=\"https://github.com/yuye8848/polypatlas\">github.com/yuye8848/polypatlas</a> \u00b7 Data archive: <a href=\"https://doi.org/10.5281/zenodo.23448779\">Zenodo DOI 10.5281/zenodo.23448779</a>.",
+     "全部来自 GEO 公开系列（各系列 PMID 与 GEO 链接见“队列与数据集”页）；策展报告、重分析报告与本网站构建脚本随代码仓库公开，全部数字可复现。代码仓库：<a href=\"https://github.com/yuye8848/polypatlas\">github.com/yuye8848/polypatlas</a> · 数据存档：<a href=\"https://doi.org/10.5281/zenodo.23448779\">Zenodo DOI 10.5281/zenodo.23448779</a>。")
 _def("m_auth_h", "Authors &amp; contact", "作者与联系")
 _def("m_auth",
-     "Authors: Peiliang Lei \u00b7 Corresponding: Peiliang Lei (of@live.com) \u00b7 Cite this resource: Lei P. PolypAtlas: a harmonised multi-omics resource integrating public transcriptomic data of chronic rhinosinusitis with nasal polyps. https://polyp.erbihou.org/ (data archive: Zenodo, DOI 10.5281/zenodo.23448780)",
-     "作者：Peiliang Lei · 通讯：Peiliang Lei（of@live.com） · 引用本资源：Lei P. PolypAtlas：整合慢性鼻窦炎伴鼻息肉公共转录组数据的统一多组学资源。https://polyp.erbihou.org/（数据存档：Zenodo，DOI 10.5281/zenodo.23448780）")
+     "Authors: Peiliang Lei \u00b7 Corresponding: Peiliang Lei (of@live.com) \u00b7 Cite this resource: Lei P. PolypAtlas: a harmonised multi-modal transcriptomic resource integrating public bulk, single-cell and spatial transcriptomic data of chronic rhinosinusitis with nasal polyps. https://polyp.erbihou.org/ (data archive: Zenodo, DOI 10.5281/zenodo.23448779)",
+     "作者：Peiliang Lei · 通讯：Peiliang Lei（of@live.com） · 引用本资源：Lei P. PolypAtlas：整合慢性鼻窦炎伴鼻息肉公共 bulk、单细胞与空间转录组数据的统一多模态转录组资源。https://polyp.erbihou.org/（数据存档：Zenodo，DOI 10.5281/zenodo.23448779）")
 
 # ---------------- cohort metadata (from step2_report.md, numbers exact) --------
 # n / n_en: design strings for the static cohorts page + dynamic gene page
@@ -508,11 +508,11 @@ BULK_COHORTS = [
      "sig": "0", "note": "表达矩阵为线性尺度，已 log2(x+1) 转换；0 个 FDR 显著为数据本底。",
      "note_en": "Expression matrix was linear-scale, log2(x+1)-transformed; zero FDR-significant genes reflect the data background."},
     {"id": "GSE69093", "n": "病例 vs 对照（校正细胞类型）", "n_en": "Cases vs controls (cell-type-adjusted)", "method": "芯片 · limma+协变量",
-     "sig": "0", "caveat": "原代培养细胞：全转录组 0 显著但 p 值富集于小 p 端，判为真实弱信号（非技术错误）。系列注册平台误标（Affymetrix），已按 Illumina HumanHT-12 v4 注释修正。",
-     "caveat_en": "Primary cultured cells: zero transcriptome-wide significant genes but p-values enriched at the small-p end — judged a genuine weak signal (not a technical error). Series platform was mislabeled at registration (Affymetrix); corrected to Illumina HumanHT-12 v4 annotation."},
+     "sig": "0", "caveat": "原代培养细胞：全转录组 0 显著但 p 值富集于小 p 端，判为真实弱信号（非技术错误）。",
+     "caveat_en": "Primary cultured cells: zero transcriptome-wide significant genes but p-values enriched at the small-p end — judged a genuine weak signal (not a technical error)."},
     {"id": "GSE70898_70900", "n": "息肉 T 细胞 vs 正常鼻黏膜 T 细胞(12v6)", "n_en": "Polyp T cells vs normal nasal-mucosa T cells (12v6)", "method": "芯片 · limma",
-     "sig": "9,426", "note": "同研究跨系列（GSE70898+GSE70900）合并；短期离体组织培养；平台误标已修正。",
-     "note_en": "Merged across two series of the same study (GSE70898+GSE70900); short-term explant culture; platform mislabeling corrected."},
+     "sig": "9,426", "note": "同研究跨系列（GSE70898+GSE70900）合并；短期离体组织培养。",
+     "note_en": "Merged across two series of the same study (GSE70898+GSE70900); short-term explant culture."},
     {"id": "GSE72713", "n": "CRSwNP(6) vs 正常对照(3)", "n_en": "CRSwNP (6) vs normal controls (3)", "method": "FPKM · limma",
      "sig": "129", "note": "n 极小（3/3/3）；lncRNA+mRNA 混合文件。",
      "note_en": "Very small n (3/3/3); mixed lncRNA+mRNA files."},
@@ -635,7 +635,7 @@ QUICK_GENES = ["CLC", "CCL26", "CCL13", "IL33", "TSLP", "POSTN", "SERPINB2", "AL
                "EPAS1", "PTGS2", "BIRC3", "S100A8"]
 
 HEADLINE = {
-    "series_curated": 66, "series_core": 30, "samples_curated": "2,046",
+    "series_curated": 66, "series_core": 32, "samples_curated": "2,046",
     "bulk_cohorts": 16, "bulk_genes": "19,266", "bulk_contrasts": 30,
     "sc_datasets": 10, "sc_cells": "476,254", "sc_donors": 105, "sc_genes": "17,631", "sc_contrasts": 41,
     "spatial_roi": 40, "spatial_donors": 10, "spatial_genes": "1,480",

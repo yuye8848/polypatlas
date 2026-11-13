@@ -1,10 +1,10 @@
-# PolypAtlas — CRSwNP Multi-omics Resource
+# PolypAtlas — CRSwNP Multi-modal Transcriptomic Resource
 
 **Live resource: https://polyp.erbihou.org/**
 
-PolypAtlas is a curated, harmonized multi-omics resource for chronic rhinosinusitis with nasal polyps (CRSwNP), built entirely from public data. It integrates the public human CRS / nasal-polyp transcriptomic datasets catalogued on GEO (66 series curated; 30 core datasets), spanning bulk transcriptomics, single-cell RNA-seq and spatial transcriptomics, reprocessed under one uniform pipeline so that any gene can be compared across cohorts, cell types and tissue compartments.
+PolypAtlas is a curated, harmonized multi-modal transcriptomic resource for chronic rhinosinusitis with nasal polyps (CRSwNP), built entirely from public data. It integrates the public human CRS / nasal-polyp transcriptomic datasets catalogued on GEO (66 series curated; 32 core datasets), spanning bulk transcriptomics, single-cell RNA-seq and spatial transcriptomics, reprocessed under one uniform pipeline so that any gene can be compared across cohorts, cell types and tissue compartments.
 
-鼻息肉（CRSwNP）多组学公共数据资源：策展 GEO 全部 66 个人类 CRS/鼻息肉系列，统一流程重处理 bulk、单细胞与空间转录组，支持按基因跨队列、跨细胞类型、跨组织区室查询。网站为中英双语，默认英文。
+鼻息肉（CRSwNP）多模态转录组公共数据资源：策展 GEO 全部 66 个人类 CRS/鼻息肉系列，统一流程重处理 bulk、单细胞与空间转录组，支持按基因跨队列、跨细胞类型、跨组织区室查询。网站为中英双语，默认英文。
 
 ## Contents
 
@@ -23,13 +23,13 @@ PolypAtlas is a curated, harmonized multi-omics resource for chronic rhinosinusi
 
 ## Data availability
 
-All processed data are archived on Zenodo (CC BY 4.0): **DOI [10.5281/zenodo.23448780](https://doi.org/10.5281/zenodo.23448780)**. The same tables are also available directly from the website's download page.
+All processed data are archived on Zenodo (CC BY 4.0): **DOI [10.5281/zenodo.23448779](https://doi.org/10.5281/zenodo.23448779)**. The same tables are also available directly from the website's download page.
 
 ## Citation
 
 If you use PolypAtlas in your work, please cite:
 
-> PolypAtlas: a curated multi-omics resource for chronic rhinosinusitis with nasal polyps. https://polyp.erbihou.org/ — archived data: Zenodo, DOI 10.5281/zenodo.23448780.
+> PolypAtlas: a curated multi-modal transcriptomic resource for chronic rhinosinusitis with nasal polyps. https://polyp.erbihou.org/ — archived data: Zenodo, DOI 10.5281/zenodo.23448779.
 
 ## Repository layout
 
